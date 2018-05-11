@@ -1,1 +1,0 @@
-../../blocks/xkcd/xkcd.js
