@@ -1,0 +1,3 @@
+Versions are simple. If any changes are made that break backwards compatibility, roll the version number forward up by one and explain what was changed.
+0.0.1
+  ...nothing broken yet
