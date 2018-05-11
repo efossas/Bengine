@@ -1,1 +1,0 @@
-../../blocks/wysiwyg/wysiwyg.js

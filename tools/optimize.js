@@ -4,9 +4,14 @@
 const fs = require('fs');
 const https = require("https");
 
-console.log("Welcome. This will create faster Bengine pages by downloading block dependencies.\n");
-console.log("If no block types are listed in the command line arguments, then all dependencies will be added to the optimized page.");
-console.log("Usage: node optimize.js [blocktype, ...]\n");
+const pathDev = '/../public/dev';
+const pathPro = '/../public/bengine';
+
+console.log("\nWelcome. This will optimize Bengine by minifying and downloading block dependencies.\n");
+console.log("Usage: node optimize.js [block, ...]\n");
+console.log("To optimize everything, don't enter any arguments.");
+console.log("To optimize only Bengine, just enter 'bengine' as the only argument.");
+console.log("To optimize specific blocks, enter the block names as arguments.\n");
 
 var getRequestSaveFile = (url,path) => {
 	console.log("getting... " + url);
@@ -40,8 +45,7 @@ var readBlocks = (resolve,reject) => {
 		});
 		
 		if(optimize.length <= 0) {
-			for(let i = 0; i < process.argv.length; i++) {
-				if(process.argv[i].indexOf("node") !== -1 && process.argv[i].indexOf("optimize.js") !== -1)
+			for(let i = 2; i < process.argv.length; i++) {
 				optimize.push(process.argv[i]);
 			}
 		}
@@ -53,7 +57,7 @@ var readBlocks = (resolve,reject) => {
 var evalBlocks = (result) => {
 	var blocks = result["blocks"];
 	var optimize = result["optimize"];
-	
+
 	var Bengine = {"extensibles":{}};
 	var Blocks = Object.keys(blocks);
 	optimize.forEach((block) => {
@@ -69,7 +73,7 @@ var evalBlocks = (result) => {
 				console.log(result.error);
 			} else {
 				console.log("writing... " + block + ".min.js");
-				fs.writeFile(__dirname + "/../public/blocks_minified/" + block + ".min.js", result.code, function(error) {
+				fs.writeFile(__dirname + pathPro + "/blocks/" + block + ".min.js", result.code, function(error) {
 				    if(error) {
 				        console.log(error);
 				    }
@@ -82,13 +86,13 @@ var evalBlocks = (result) => {
 };
 
 var getBlockDependencies = (Bengine) => {
-	let depDir = __dirname + "/../public/block_dependencies";
+	let depDir = __dirname + pathPro + "/libs";
 	console.log("checking for directory: " + depDir);
 	if (!fs.existsSync(depDir)){
 	    fs.mkdirSync(depDir);
 	}
 	
-	let minDir = __dirname + "/../public/blocks_minified";
+	let minDir = __dirname + pathPro + "/blocks";
 	console.log("checking for directory: " + minDir);
 	if (!fs.existsSync(minDir)){
 	    fs.mkdirSync(minDir);
@@ -115,17 +119,17 @@ new Promise(readBlocks).then(evalBlocks).then((Bengine) => {
 	getBlockDependencies(Bengine);
 });
 
-/* minify bengine js & css */
+/* minify bengine js */
 const UglifyJS = require("uglify-es");
 
-fs.readFile(__dirname + "/../public/js/bengine.js", {encoding: 'utf-8'}, (err, data) => {
+fs.readFile(__dirname + pathDev + "/js/bengine.js", {encoding: 'utf-8'}, (err, data) => {
 	console.log("minifying... bengine.js");
 	var result = UglifyJS.minify(data);
 	if(result.error) {
 		console.log(result.error);
 	} else {
 		console.log("writing... bengine.min.js");
-		fs.writeFile(__dirname + "/../public/js/bengine.min.js", result.code, function(error) {
+		fs.writeFile(__dirname + pathPro + "/js/bengine.min.js", result.code, function(error) {
 		    if(error) {
 		        console.log(error);
 		    }
@@ -133,11 +137,46 @@ fs.readFile(__dirname + "/../public/js/bengine.js", {encoding: 'utf-8'}, (err, d
 	}
 });
 
-/* // minify css? it's embeded in js files
+/* minify bengine default display */
+fs.readFile(__dirname + pathDev + "/js/bengine-default-display.js", {encoding: 'utf-8'}, (err, data) => {
+	console.log("minifying... bengine-default-display.js");
+	var result = UglifyJS.minify(data);
+	if(result.error) {
+		console.log(result.error);
+	} else {
+		console.log("writing... bengine.min.js");
+		fs.writeFile(__dirname + pathPro + "/js/bengine-default-display.min.js", result.code, function(error) {
+		    if(error) {
+		        console.log(error);
+		    }
+		});
+	}
+});
+
+/* minify bengine css */
 var CleanCSS = require('clean-css');
-var input = 'a{font-weight:bold;}';
-var options = {};
-var output = new CleanCSS(options).minify(input);
-*/
+fs.readFile(__dirname + pathDev + "/css/bengine.css", {encoding: 'utf-8'}, (err, data) => {
+	console.log("minifying... bengine.css");
+	var options = {
+		returnPromise:true
+	};
+	new CleanCSS(options)
+	.minify(data)
+	.then(function (output) { 
+		console.log("writing... bengine.min.css");
+		fs.writeFile(__dirname + pathPro + "/css/bengine.min.css", output.styles, function(error) {
+		    if(error) {
+		        console.log(error);
+		    }
+		});
+	})
+	.catch(function (error) { 
+		console.log(error);
+	});
+});
+
+
+
+
 
 

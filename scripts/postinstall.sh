@@ -8,15 +8,15 @@ echo "scriptpath: $SCRIPTPATH"
 cd ./$SCRIPTPATH/..
 
 # create symlinks to
-ln -sf ../../node_modules/mocha/mocha.css ./public/css
-ln -sf ../../node_modules/mocha/mocha.js ./public/js
-ln -sf ../../node_modules/chai/chai.js ./public/js
+ln -sf ../../../node_modules/mocha/mocha.css ./public/dev/css
+ln -sf ../../../node_modules/mocha/mocha.js ./public/dev/js
+ln -sf ../../../node_modules/chai/chai.js ./public/dev/js
 
 # reset block symlinks
-rm -rf ./public/blocks/*
+rm -rf ./public/dev/blocks/*
 
 BLOCKS=$(ls -l ./blocks | tail -n +2 | tr -s ' ' | cut -d" " -f9)
-for name in $BLOCKS; do ln -sf "../../blocks/$name/$name.js" "./public/blocks/$name.js"; done
+for name in $BLOCKS; do ln -sf "../../../blocks/$name/$name.js" "./public/dev/blocks/$name.js"; done
 unset BLOCKS
 
 # generate ssl certificates
