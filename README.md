@@ -71,26 +71,27 @@ A list of currently available blocks can be found in the `blocks` directory. If 
 
 Extensions are objects you can pass to Bengine to handle functionality that isn't directly related to loading and displaying blocks. Here is a list of extensions you can add:
 
-NAME | REQUIRED FUNCTIONS | EXPLANATION
+NAME | FUNCTIONS | EXPLANATION
 | --- | --- | --- |
-alerts | | used for UI messages
-- | alert() | used to alert the user of errors 
-- | confirm() | used when requiring user confirmation
-- | log() | used to display or log developer related error messages
-display | | used to display page related functionality like save buttons, loading progress, page status, etc.
-- | - | the display is created using the new operator and recieves these arguments: (engineID,datahandler)
-- | progressFinalize(status,total) | run when saving or uploading has completed 
-- | progressInitialize(status,total) | run when saving or uploading has initialized
-- | progressUpdate(loaded) | run when there is an update to progress
-- | updateSaveStatus(status) | run when there is a change of save status
+alerts | _ | used for UI messages
+ _ | alert() | used to alert the user of errors 
+ _ | confirm() | used when requiring user confirmation
+ _ | log() | used to display or log developer related error messages
+display | _ | used to display page related functionality like save buttons, loading progress, page status, etc.
+ _ | _ | the display is created using the new operator and recieves these arguments: (engineID,datahandler)
+ _ | progressFinalize(status,total) | run when saving or uploading has completed 
+ _ | progressInitialize(status,total) | run when saving or uploading has initialized
+ _ | progressUpdate(loaded) | run when there is an update to progress
+ _ | updateSaveStatus(status) | run when there is a change of save status
 
 A list of known compatible extensions are listed below:
 
 NAME | EXTENSION
 | --- | --- |
-alerts | 
-- | Alertify: https://github.com/MohammadYounes/AlertifyJS
-display| 
-- | Bengine Default Display: it's in the public/dev/js directory
+alerts | _
+ _ | Alertify: https://github.com/MohammadYounes/AlertifyJS
+display | _
+ _ | Bengine Default Display: it's in the public/dev/js directory
+
 
 
