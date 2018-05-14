@@ -24,6 +24,9 @@
 		<script src="dev/js/bengine.js"></script>
 		<script>
 			Bengine.loadBlocks([
+				'https://rawgit.com/fabien-d/alertify.js/0.3/themes/alertify.core.css',
+				'https://rawgit.com/fabien-d/alertify.js/0.3/themes/alertify.default.css',
+				'https://rawgit.com/fabien-d/alertify.js/0.3/src/alertify.js',
 				'https://RELATIVE/bengine/js/bengine-default-display.min.js',
 				'qans',
 				'qcss',
@@ -37,6 +40,7 @@
 				if(result.length > 0) window.alert("Bengine was unable to load these blocks: " + result);
 
 				new Bengine({},{
+					alerts:alertify,
 					display:BengineDefaultDisplay 
 				}).loadQuizShow("content",qengineFileName); // engine DOM id, path to assets
 			});
