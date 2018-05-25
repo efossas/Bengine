@@ -1,3 +1,3 @@
 node_modules/
 ssl/
-public/content/bank/
+.DS_Store

@@ -1,1 +1,0 @@
-../../blocks/image/image.js

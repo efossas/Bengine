@@ -1,0 +1,1 @@
+../../../blocks/video/video.js

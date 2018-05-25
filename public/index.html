@@ -6,124 +6,101 @@
 
 		<title>Index</title>
 		
-		<style>
-			body {
-				font-family: sans-serif;
-				background-color:black;
-				color:white;
-			}
-			
-			a {
-				font-size: 1.2em;
-			}
-			
-			a:link {
-				color:white;
-			}
-			
-			a:hover {
-				color:grey;
-			}
-			
-			a:visited	{
-				color:white;
-			}
-			
-			.row {
-				display:inline-block;
-				margin-top:40px;
-				width: 100%;
-			}
-		</style>
+		<link rel="stylesheet" href="dev/css/index.css">
+		<link rel="stylesheet" href="dev/css/bengine.css">
 	</head>
 
 	<body class="body" style="">
 		<div class="row">
-			<div class="col col-17"></div>
-			<div class="col col-32">
+			<div class="col col-10"></div>
+			<div class="col col-80">
+				<a href="https://github.com/academicsystems/Bengine-MAESC" target="_blank" style="text-align:center">Introduction</a>
+				<br><br>
+				Here are links to Bengine's different modes. If you didn't spin this up using Bengine-MAESC, a lot of the Qengine features won't work, as they depend on other microservices.
+				<br><br>
+				If you want to view the modes with demo data, go here: <a href="demo.html">Demos</a>
+			</div>
+			<div class="col col-10"></div>
+		</div>
+			
+		<div class="row">
+			<div class="col col-10"></div>
+			<div class="col col-39">
 				<h2 style="text-align:center">Bengine</h2>
 			</div>
 			<div class="col col-2"></div>
-			<div class="col col-32">
+			<div class="col col-39">
 				<h2 style="text-align:center">Qengine</h2>
 			</div>
-			<div class="col col-17"></div>
+			<div class="col col-10"></div>
 		</div>
 		
 		<div class="row">
-			<div class="col col-17"></div>
-			<div class="col col-32">
-				<a href="bengine-pro.html">Edit Mode</a>
+			<div class="col col-10"></div>
+			<div class="col col-39">
+				<a href="pages/bengine/edit.html">Edit Mode</a>
 				<br><br>
-				Explore blocks for creating online content that works with Bengine.
+				Explore blocks for creating online content.
 			</div>
 			<div class="col col-2"></div>
-			<div class="col col-32">
-				<a href="qengine-pro.html">Edit Mode</a>
+			<div class="col col-39">
+				<a href="pages/qengine/edit.html">Edit Mode</a>
 				<br><br>
-				Explore blocks for creating quizzes that work with Qengine.
+				Explore blocks for creating dynamic quizzes.
 			</div>
-			<div class="col col-17"></div>
+			<div class="col col-10"></div>
 		</div>
 		
 		<div class="row">
-			<div class="col col-17"></div>
-			<div class="col col-32">
-				<a href="bdemo.html">Show Mode</a>
+			<div class="col col-10"></div>
+			<div class="col col-39">
+				<a href="pages/bengine/show.html">Show Mode</a>
 				<br><br>
-				This will load whatever you saved in the Bengine edit mode, but in show mode.
+				This will load whatever you saved in Bengine edit mode, but in show mode.
 			</div>
 			<div class="col col-2"></div>
-			<div class="col col-32">
-				<a href="qdemo.html">Show Mode</a>
+			<div class="col col-39">
+				<a href="pages/qengine/show.html">Show Mode</a>
 				<br><br>
-				This will load whatever you saved in the Qengine edit mode, but in show mode.
+				This will load whatever you saved in Qengine edit mode, but in show mode.
 			</div>
-			<div class="col col-17"></div>
+			<div class="col col-10"></div>
 		</div>
 		
 		<div class="row">
-			<div class="col col-17"></div>
-			<div class="col col-32">
-				<a href="bengine-dev.html">Edit Mode (Dev)</a>
+			<div class="col col-10"></div>
+			<div class="col col-39">
+				<a href="pages/bengine/dev.html">Edit Mode (Dev)</a>
 				<br><br>
 				This page loads Bengine in edit mode using original files (no optimization), for developers.
 			</div>
 			<div class="col col-2"></div>
-			<div class="col col-32">
-				<a href="qengine-dev.html">Edit Mode (Dev)</a>
+			<div class="col col-39">
+				<a href="pages/qengine/dev.html">Edit Mode (Dev)</a>
 				<br><br>
 				This page loads Qengine in edit mode using original files (no optimization), for developers.
 			</div>
-			<div class="col col-17"></div>
+			<div class="col col-10"></div>
 		</div>
 		
 		<div class="row">
-			<div class="col col-17"></div>
-			<div class="col col-66">
-				<a href="playground.html" style="text-align:center">Developer's Playground</a>
+			<div class="col col-10"></div>
+			<div class="col col-80">
+				<a href="develop.html" style="text-align:center">Developer's Playground</a>
 				<br><br>
 				This playground will load a basic block. You can edit it to create and test your own custom block.
 			</div>
-			<div class="col col-17"></div>
+			<div class="col col-10"></div>
 		</div>
 		
 		<footer class="footer"></footer>
-
-		<!-- load bengine, just for css styles -->
-		<script src="js/bengine.js"></script>
-		<script>
-			window.addEventListener('DOMContentLoaded', function() {
-				new Bengine();
-			});
-		</script>
 	
 		<!-- mocha tests -->
 		<div id="mocha"></div>
-		<link rel="stylesheet" href="css/mocha.css">
-		<script src="js/mocha.js"></script>
-		<script src="js/chai.js"></script>
+		<link rel="stylesheet" href="dev/css/mocha.css">
+		<script src="dev/js/mocha.js"></script>
+		<script src="dev/js/chai.js"></script>
 		<script>mocha.setup('bdd')</script>
-		<script src="front-test/index.js"></script>
+		<script src="dev/front-test/index.js"></script>
 	</body>
 </html>

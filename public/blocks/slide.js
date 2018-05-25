@@ -1,1 +1,0 @@
-../../blocks/slide/slide.js

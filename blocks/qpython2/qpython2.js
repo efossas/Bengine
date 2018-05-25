@@ -130,6 +130,8 @@ Bengine.extensibles.python2 = new function Python2() {
 		
 		return {'content':blockContent,'namespace':blockNamespace,'conditional':blockConditional,'vars':blockVars};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 	    var pyBlock = document.createElement("div");

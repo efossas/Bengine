@@ -60,6 +60,8 @@ Bengine.extensibles.qans = new function Qans() {
 		}
 		return {'content':variable,'namespace':namespace,'conditional':conditional};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var str = '<div class="xQans-show">' + bcontent['content'] + '</div>';

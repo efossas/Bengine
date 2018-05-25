@@ -1,0 +1,27 @@
+body {
+	font-family: sans-serif;
+	background-color:black;
+	color:white;
+}
+
+a {
+	font-size: 1.2em;
+}
+
+a:link {
+	color:white;
+}
+
+a:hover {
+	color:grey;
+}
+
+a:visited	{
+	color:white;
+}
+
+.row {
+	display:inline-block;
+	margin-top:40px;
+	width: 100%;
+}

@@ -1,1 +1,0 @@
-../../blocks/latex/latex.js

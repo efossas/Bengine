@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>Index</title>
+		
+		<link rel="stylesheet" href="dev/css/index.css">
+		<link rel="stylesheet" href="dev/css/bengine.css">
+	</head>
+
+	<body class="body" style="">
+		<div class="row">
+			<div class="col col-10"></div>
+			<div class="col col-80">
+				<a href="https://github.com/academicsystems/Bengine-MAESC" target="_blank" style="text-align:center">Introduction</a>
+				<br><br>
+				Here are links to Bengine's different modes with demo data. If you didn't spin this up using Bengine-MAESC, a lot of the Qengine features won't work, as they depend on other microservices.
+			</div>
+			<div class="col col-10"></div>
+		</div>
+			
+		<div class="row">
+			<div class="col col-10"></div>
+			<div class="col col-39">
+				<h2 style="text-align:center">Bengine</h2>
+			</div>
+			<div class="col col-2"></div>
+			<div class="col col-39">
+				<h2 style="text-align:center">Qengine</h2>
+			</div>
+			<div class="col col-10"></div>
+		</div>
+		
+		<div class="row">
+			<div class="col col-10"></div>
+			<div class="col col-39">
+				<a href="pages/bengine/edit.html?demo">Edit Mode</a>
+				<br><br>
+				Explore blocks for creating online content.
+			</div>
+			<div class="col col-2"></div>
+			<div class="col col-39">
+				<a href="pages/qengine/edit.html?demo">Edit Mode</a>
+				<br><br>
+				Explore blocks for creating dynamic quizzes.
+			</div>
+			<div class="col col-10"></div>
+		</div>
+		
+		<div class="row">
+			<div class="col col-10"></div>
+			<div class="col col-39">
+				<a href="pages/bengine/show.html?demo">Show Mode</a>
+				<br><br>
+				This will load whatever you saved in Bengine edit mode, but in show mode.
+			</div>
+			<div class="col col-2"></div>
+			<div class="col col-39">
+				<a href="pages/qengine/show.html?demo">Show Mode</a>
+				<br><br>
+				This will load whatever you saved in Qengine edit mode, but in show mode.
+			</div>
+			<div class="col col-10"></div>
+		</div>
+		
+		<div class="row">
+			<div class="col col-10"></div>
+			<div class="col col-39">
+				<a href="pages/bengine/dev.html?demo">Edit Mode (Dev)</a>
+				<br><br>
+				This page loads Bengine in edit mode using original files (no optimization), for developers.
+			</div>
+			<div class="col col-2"></div>
+			<div class="col col-39">
+				<a href="pages/qengine/dev.html?demo">Edit Mode (Dev)</a>
+				<br><br>
+				This page loads Qengine in edit mode using original files (no optimization), for developers.
+			</div>
+			<div class="col col-10"></div>
+		</div>
+		
+		<footer class="footer"></footer>
+	
+		<!-- mocha tests -->
+		<div id="mocha"></div>
+		<link rel="stylesheet" href="dev/css/mocha.css">
+		<script src="dev/js/mocha.js"></script>
+		<script src="dev/js/chai.js"></script>
+		<script>mocha.setup('bdd')</script>
+		<script src="dev/front-test/index.js"></script>
+	</body>
+</html>

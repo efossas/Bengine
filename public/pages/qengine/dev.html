@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>Qengine</title>
+	</head>
+
+	<body class="body" style="background-color:black">
+		<div class="col col-5"></div>
+			<div class="col col-90">
+				<div id="content"><p style="color:white">fetching blocks...</p></div>
+			</div>
+		<div class="col col-5"></div>
+		
+		<footer class="footer"></footer>
+		
+		<!-- put bengine in fiddle mode or not -->
+		<script src="dev/js/playground.js"></script>
+		
+		<!-- load bengine in 'qengine' mode -->
+		<link rel="stylesheet" href="dev/css/bengine.css">
+		<script src="dev/js/bengine.js"></script>
+		<script>
+			Bengine.loadBlocks([
+				'https://RELATIVE/dev/js/bengine-default-display.js',
+				'asciimath', // only in here to show that it won't be included in Qengine File
+				'qans',
+				'qcss',
+				'qfiles',
+				'qhtml',
+				'qpython2',
+				'qsage',
+				'qstep',
+				'qstore'
+			]).then(function(result) {
+				if(result.length > 0) window.alert("Bengine was unable to load these blocks: " + result);
+
+				ENGINE = new Qengine({},{
+					display:BengineDefaultDisplay 
+				});
+				ENGINE.loadBlocksEdit("content",qengineFileName); // engine DOM id, path to assets
+			});
+		</script>
+	
+		<!-- mocha tests -->
+		<div id="mocha"></div>
+		<link rel="stylesheet" href="dev/css/mocha.css">
+		<script src="dev/js/mocha.js"></script>
+		<script src="dev/js/chai.js"></script>
+		<script>mocha.setup('bdd')</script>
+		<script src="dev/front-test/index.js"></script>
+	</body>
+</html>

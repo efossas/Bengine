@@ -131,6 +131,8 @@ A list of supported programming languages can be found here: https://github.com/
 		var blockContent = document.getElementById(bid).children[1].children[0].CodeMirror.getValue();
 		return {'mode':blockMode,'content':blockContent};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var cmBlock = document.createElement("div");
