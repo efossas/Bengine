@@ -198,6 +198,8 @@ Bengine.extensibles.xtext = new function Xtext() {
 		var blockContent = document.getElementById(bid).children[0].contentDocument.getElementsByTagName('body')[0].innerHTML;
 		return {'content':blockContent};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var textBlock = document.createElement("div");

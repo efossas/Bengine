@@ -1,9 +1,10 @@
 exports.process = function(request,response) {
+    const _ = require('../lib/util.js');
 	const rest = require('../lib/rest.js');
 	const fs = require('fs');
 	const orequest = require('request');
 	const path = require('path');
-    
+
     // mp3 mp4 jpg
     
     /*
@@ -11,7 +12,6 @@ exports.process = function(request,response) {
 	    	query.fpath		- path to file assets
 	    	query.btype		- the service, like 'sage'
 	*/
-
 	request.pipe(request.busboy);
 
     request.busboy.on('file',function(fieldname,file,filename) {
@@ -22,8 +22,8 @@ exports.process = function(request,response) {
 		});
 		
 		/* create page directory if not exists */
-		var reldir = decodeURIComponent(request.query.fpath).replace(/^\/(.+)?\/$/g,"$1") + "/assets/";
-		var absdir = './public/content/' + reldir;
+		var reldir = '/content/' + decodeURIComponent(request.query.fpath).replace(/^\/(.+)?\/$/g,"$1") + "/assets/";
+		var absdir = './public' + reldir;
 		const initDir = path.isAbsolute(absdir) ? path.sep : '';
 		
 		absdir.split(path.sep).reduce((parentDir, childDir) => {
@@ -60,27 +60,61 @@ exports.process = function(request,response) {
 					* cmd array requires 'INPUT' & 'OUTPUT' to tell service where to insert input and output file names
 				*/
 				var serveData = {
-					'input':reldir + fileinput,
-					'cmd':service.command
+					'input': fileinput,
+					'cmd': service.command
 				}
 			
-				serviceURL = request.app.get("services")[query.btype];
-				
-				orequest.post({
-				    url: serviceURL + "/service",
-				    body: serveData,
-				    json: true
-				}).on('error', function(error) {
-					response.status = 400;
-					response.end(String(error));
-				}).on('data', function(data) {
-					service.process(response,data);
-				}).on('response', function(response) {
-					response.end('');
-				});
+				serviceURL = request.app.get("services")[request.query.btype].url;
+
+                /* read original file */
+                fs.readFile(fullpath, (err,data) => {
+                    if (err) {
+                        response.end(String(err));
+                        return;
+                    }
+                    /* upload file to service */
+                    orequest.put({
+                        url: serviceURL + "/upload/" + fileinput,
+                        body: data
+                    },function(err,res,body) {
+                        if (err) {
+                            response.end(String(err));
+                            return;
+                        }
+                        if (res.statusCode !== 200) {
+                            response.end('Error:' + body);
+                            return;
+                        }
+                        /* send service request to transform file */
+                        var getFile;
+                        orequest.post({
+        				    url: serviceURL + "/service",
+        				    body: serveData,
+        				    json: true
+        				}).on('data', function(data) {
+        					getFile = service.process(response,data);
+        				}).on('response', function(res) {
+            				res.on('end', function() {
+                				/* get transformed file */
+                                if (getFile) {
+                                    var fstream = fs.createWriteStream(absdir + getFile);
+                                    orequest.get(serviceURL + "/static/" + getFile).pipe(fstream);
+                                    
+                                    /* respond with file name */
+                                    fstream.on('close',function() {
+                                        response.end("," + reldir + getFile);
+                                    });
+                                    
+                                    return;
+                                }
+                                response.end('');
+            				});
+                        });
+                    });
+                });
 			} catch(err) {
 				// could not load service, just return uploaded file path
-				response.end("," + '/content/' + reldir + fileinput);
+				response.end("," + reldir + fileinput);
 			}
 		});
 	});	

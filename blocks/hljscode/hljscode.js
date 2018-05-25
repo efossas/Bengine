@@ -141,6 +141,8 @@ Bengine.extensibles.xcode = new function Xcode() {
 	this.saveContent = function(bid) {
 		return {'content':_private.removeHighlights(document.getElementById(bid).children[0].innerHTML)};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {		
 		var codeBlock = document.createElement("div");

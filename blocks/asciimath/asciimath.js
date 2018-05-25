@@ -117,6 +117,8 @@ Bengine.extensibles.xmath = new function Xmath() {
 	this.saveContent = function(bid) {
 		return {'content':document.getElementById(bid).children[1].innerHTML};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var mathpreview = document.createElement('div');

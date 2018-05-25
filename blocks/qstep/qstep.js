@@ -49,6 +49,8 @@ Bengine.extensibles.qstep = new function Qstep() {
 	this.saveContent = function(bid) {
 		return {'content':document.getElementById(bid).children[0].value.split("\n")[0]};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var str = '<div class="xQstep-show">' + bcontent['content'] + '</div>';

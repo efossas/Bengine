@@ -128,6 +128,8 @@ Bengine.extensibles.sage = new function Sage() {
 		var blockVars = document.getElementById(bid).children[3].value;
 		return {'content':blockContent,'namespace':blockNamespace,'conditional':blockConditional,'vars':blockVars};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 	    var sageBlock = document.createElement("div");

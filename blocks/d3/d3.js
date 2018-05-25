@@ -262,6 +262,8 @@ Z	.00074`;
 		let data = document.getElementById(bid).children[2].textContent;
 		return {'content':content,'data':data};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var d3Block = document.createElement('div');

@@ -28,12 +28,30 @@
 	"processes":1,
 	"services":
 	{
-		"sage":"http://localhost:9601",
-		"python2":"http://localhost:9602",
-		"audio":"http://localhost:9001",
-		"image":"http://localhost:9002",
-		"slide":"http://localhost:9003",
-		"video":"http://localhost:9001"
+		"sage":
+		{
+    		"url":"http://localhost:9601"
+		},
+		"python2":
+		{
+    		"url":"http://localhost:9602"
+		},
+		"audio":
+		{
+    		"url":"http://localhost:9001"
+		},
+		"image":
+		{
+    		"url":"http://localhost:9002"
+		},
+		"slide":
+		{
+    		"url":"http://localhost:9003"
+		},
+		"video":
+		{
+    		"url":"http://localhost:9001"
+		}
 	},
 	"session":
 	{

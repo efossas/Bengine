@@ -29,7 +29,20 @@
 	Bengine
 		loadBlocks				function to dynamically retrieve blocks and dependencies
 		setScriptPath			function to set path to Bengine files
-		
+	
+	* file formats:
+		Njn text format
+			{%type:namespace:conditional
+			    content
+			%}
+		Njn data format
+			order : [namespace,...]
+			blocks : [[type,content,conditional],...]
+		Bengine Json format
+			"types": [type,...]
+			"content": [{data object},...]
+		Bengine Page Data format
+			[type,{data object},...]
 */
 function Bengine(options,extensions) {
 	
@@ -41,6 +54,7 @@ function Bengine(options,extensions) {
 	
 	// initialize public generated variables
 	_protected.variables = {};
+	this.variables = _protected.variables;
 	_protected.variables.qengine = {};
 	_protected.variables.qengine.randomseed = Math.floor(Math.random() * 4294967296);
 
@@ -94,7 +108,7 @@ function Bengine(options,extensions) {
 	_private.extensibles = Object.assign({},Bengine.extensibles);
 	
 	var validExtAttr = [
-		"type", // 
+		"type",
 		"name",
 		"category",
 		"upload",
@@ -106,6 +120,7 @@ function Bengine(options,extensions) {
 		"runBlock",
 		"runData",
 		"saveContent",
+		"saveFile",
 		"showContent",
 		"styleBlock"
 	];
@@ -116,8 +131,8 @@ function Bengine(options,extensions) {
 		// check that they have programmed only allowable methods
 		validExtAttr.forEach(function(element) {
 			if(!(extensibleAttributes.includes(element))) {
-				delete _private.extensibles[prop];
-				throw Error("Bengine: invalid extensible configuration in " + prop + ". Missing method: " + element);
+				_private.extensibles[prop][element] = null;
+				console.warn("Bengine: " + prop + " has not implemented method: " + element);
 			}
 		});
 		
@@ -157,7 +172,7 @@ function Bengine(options,extensions) {
 			block.innerHTML = "<p class='bengine_unknown_block'>unknown block</p>";
 			return block;
 		}
-		this.afterDOMinsert = function(bid,data) {return null;}
+		this.afterDOMinsert = function(bid,url,data) {return null;}
 		this.runBlock = null;
 		this.runData = function(data) {return null;}
 		this.saveContent = function(bid) {return {};}
@@ -269,8 +284,21 @@ function Bengine(options,extensions) {
 			this.prev = this.curr;
 			this.curr = spot;
 		}
-		console.log([spot,this.prev,this.curr]);
 		return [this.prev,this.curr];
+	};
+	
+	// convert from Njn format to page data array for consumption of Bengine load functions
+	_private.helper.convertNjnFormatToPageDataArray = function(blocks) {
+		var pageData = [];
+		for (block of blocks.order) {
+			pageData.push(blocks.blocks[block][0]); // type
+			pageData.push({
+				"content":blocks.blocks[block][1] ,
+				"namespace":block,
+				"conditional":blocks.blocks[block][2]
+			});
+		}
+		return pageData;
 	};
 	
 	// remove node
@@ -286,6 +314,100 @@ function Bengine(options,extensions) {
 	_private.helper.createURL = function(path) {	
 		return window.location.origin + encodeURI(path);
 	};
+	
+	function Blocks(text) {
+		var _priv = {};
+		var _pub = this;
+
+		_priv.data = {
+			cblock: '' // current block key in this.blocks
+		};
+
+		_pub.data = {
+			blocks: {}, // bname -> [btype,bcontent,bcond]
+			order: []  // ordered list of block keys
+		};
+		
+		_priv.reset = function() {
+			_priv.data = {cblock:''};
+			_pub.data = {blocks:{},order:[]};	
+		};
+
+		_priv.parseOpen = function(line) {
+			var splits = line.split('{%');
+			if (splits.length > 1) {
+				var bname;
+				var btype;
+				var bcond = null;
+				var theRest = '';
+				var parts = splits[1].split(':');
+				if (parts.length > 2) {
+					btype = parts[0];
+					bname = parts[1];
+					var lastParts = parts[2].split(/\s/g);
+					bcond = lastParts[0];
+					if (lastParts.length > 1) {
+						theRest = lastParts[1];
+					}
+				} else if (parts.length > 1) {
+					btype = parts[0];
+					var lastParts = parts[1].split(/\s/g);
+					bname = lastParts[0];
+					if (lastParts.length > 1) {
+						theRest = lastParts[1];
+					}
+				} else {
+					throw 'Invalid Engine File';
+				}
+				_priv.createBlock(bname,btype,bcond);
+				if (theRest) {
+					_priv.parseClose(theRest);
+				}
+				return true;
+			} else {
+				return false;
+			}
+		};
+
+		_priv.parseClose = function(line) {
+			var splits = line.split('%}');
+			if (splits.length > 1) {
+				_priv.addToBlock(splits[0]);
+				return !_priv.parseOpen(splits[1]);
+			} else {
+				_priv.addToBlock(line);
+				return false;
+			}
+		};
+
+		_priv.createBlock = function(bname,btype,bcond) {
+			_pub.data.blocks[bname] = [btype,'',bcond];
+			_pub.data.order.push(bname);
+			_priv.data.cblock = bname;
+		};
+
+		_priv.addToBlock = function(line) {
+			_pub.data.blocks[_priv.data.cblock][1] += line;
+		};
+
+		_pub.parseEngineFile = function(text) {
+			_priv.reset();
+			var bsearch = true;
+			var lines = text.split("\n");
+			for (line of lines) {
+				if (bsearch) {
+					bsearch = !_priv.parseOpen(line);
+				} else {
+					bsearch = _priv.parseClose(line);
+				}
+			}
+			
+			return _pub.data;
+		};
+	};
+	
+	var Blocks = new Blocks();
+	_private.helper.parseEngineFile = Blocks.parseEngineFile;
 	
 	_private.helper.retrieveResource = function(path) {
 		var promise = new Promise(function(resolve,reject) {
@@ -367,6 +489,28 @@ function Bengine(options,extensions) {
 		return false;
 	};
 	
+	_private.extAPI.getLocalResource = function(filename,url) {
+		var promise = new Promise(function(resolve,reject) {
+			var xhr = new XMLHttpRequest();
+	    	xhr.open('GET',window.location.origin + url);
+	    	xhr.responseType = 'blob';
+	    	
+	    	xhr.onreadystatechange = function() {
+				if(xhr.readyState === XMLHttpRequest.DONE) {
+					if(xhr.status !== 200) {
+						reject(url);
+					} else {
+						resolve(new File([xhr.response], filename));
+					}
+				}
+			};
+			
+			xhr.send();
+		});
+		
+		return promise;
+	};
+	
 	_private.extAPI.getResourcePath = function(str) {
 		let resource;
 		let parts = str.split(/\.(.+)/).filter(function(el) {return el.length != 0});
@@ -436,9 +580,7 @@ function Bengine(options,extensions) {
 	/*** Section: Public Methods ***/
 	
 	/*
-		blockData (array)[string,string,...] - block type & block content, repeated for every block
-	
-		(number) - block count
+		blockData (array)[string,object,...] - block type & block content, repeated for every block
 	*/
 	_private.loadBlocksShowReady = async function(blockData) {	
 		/* domid div */
@@ -522,7 +664,7 @@ function Bengine(options,extensions) {
 			blocksdiv.appendChild(group);
 			
 			/* do any rendering the block needs */
-			_private.extensibles[blockData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null);
+			_private.extensibles[blockData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null,null);
 	
 			count += 2;
 			i++;
@@ -904,7 +1046,7 @@ function Bengine(options,extensions) {
 	this.loadQuizShow = _public.loadQuizShow;
 	
 	/*
-		pageData (array)[string,string,...] -  optional, for loading data directly. block type & block content, repeated for every block
+		pageData (array)[string,object,...] -  optional, for loading data directly. block type & block content, repeated for every block
 	*/
 	_private.loadBlocksEditReady = async function(pageData) {
 		_private.status = 1;
@@ -1018,7 +1160,7 @@ function Bengine(options,extensions) {
 			blocksdiv.appendChild(group);
 	
 			/* do any rendering the block needs */
-			_private.extensibles[pageData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null);
+			_private.extensibles[pageData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null,null);
 	
 			count += 2;
 			i++;
@@ -1038,7 +1180,7 @@ function Bengine(options,extensions) {
 		var url = _private.helper.createURL("/upload");
 	
 		var fileform = document.createElement('form');
-		fileform.setAttribute('id','file-form');
+		fileform.setAttribute('id','file-form-' + _private.engineID);
 		fileform.setAttribute('action',url);
 		fileform.setAttribute('method','POST');
 		fileform.style.visibility = 'hidden';
@@ -1342,7 +1484,7 @@ function Bengine(options,extensions) {
 				btnRow.setAttribute('class','row');
 				
 				var colDiv = document.createElement('div');
-				colDiv.setAttribute('class','col col-100'); // columns: '1_' + (_private.categoryCounts[_private.extensibles[prop].category] + 1)
+				colDiv.setAttribute('class','col col-100');
 	
 				colDiv.appendChild(btn);
 				btnRow.appendChild(colDiv);
@@ -1442,7 +1584,7 @@ function Bengine(options,extensions) {
 			
 		var blockbuttons = _private.blockMethod.blockButtons(bid);
 		_private.blockMethod.insertBlock(retblock,blockbuttons,bid,blockCount);
-		blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,null);
+		blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,null,null);
 	
 		/* make delete buttons visible */
 		var i = 0;
@@ -1547,6 +1689,7 @@ function Bengine(options,extensions) {
 		
 			/* get the block types & contents */
 			var BengineArray = [];
+			var BengineAssets = [];
 			if(blockCount > 0) {
 				var i = 0;
 				var ns = 1;
@@ -1564,8 +1707,16 @@ function Bengine(options,extensions) {
 					let bstuff = _private.extensibles[btype].saveContent('bengine-a-' + _private.engineID + '-' + bid);
 					let bcontent = bstuff['content'].replace(/\{\%/g,'\\{%').replace(/\%\}/g,'\\%}');
 					
+					/* check for namespace, if none, create random one */
+					var namespace = 'ns' + ns++;
+					
+					/* if there's an asset, grab it */
+					if (_private.extensibles[btype].saveFile) {
+    					BengineAssets.push(_private.extensibles[btype].saveFile('bengine-a-' + _private.engineID + '-' + bid));
+					}
+					
 					if(btype !== 'qstep') {
-						BengineArray.push(`{%${btype}\n${bcontent}\n%}\n\n`);
+						BengineArray.push(`{%${btype}:${namespace}\n${bcontent}\n%}\n\n`);
 					} else {
 						BengineArray.push(`@@@@${bcontent}\n\n`);
 					}
@@ -1577,13 +1728,64 @@ function Bengine(options,extensions) {
 			
 			var BengineFile = BengineArray.join('');
 			
-			var qd = window.open();
-			qd.document.open();
-			qd.document.write('<html><head><title>Bengine File</title></head><body>');
-			qd.document.write('<pre>' + BengineFile + '</pre>');
-			qd.document.write('</body></html>');
-			qd.document.close();
+			// create .zip file or just .njn
+			if (BengineAssets.length > 0) {
+				var zip = new Bengine.libs.zip();
+				zip.file(_private.pagePath.replace(/\//g,'') + ".txt", BengineFile);
+				var folder = zip.folder('assets');
+				for (asset of BengineAssets) {
+					folder.file(asset.name, asset);
+				}
+				zip.generateAsync({type:"blob"}).then(function (blob) {
+				    Bengine.libs.file.saveAs(blob,_private.pagePath.replace(/\//g,'') + '.zip');
+				});
+			} else {
+				var qd = window.open();
+				qd.document.open();
+				qd.document.write('<html><head><title>Bengine File</title></head><body>');
+				qd.document.write('<pre>' + BengineFile + '</pre>');
+				qd.document.write('</body></html>');
+				qd.document.close();
+			}
 		};
+		
+		_private.datahandler.uploadEngineFile = function() {
+			_private.datahandler.requestFile(".zip,.txt",function(file) {
+				if (file.type === "application/zip") {
+					var zip = new Bengine.libs.zip();
+					zip.loadAsync(file).then(function(unzip) {
+						var txtFile;
+						var assets = [];
+					    var keys = Object.keys(unzip.files);
+					    for (key of keys) {
+						    if (key.substr(0,7) === "assets/" && key.length > 7) {
+							    var asset = {};
+							    asset[key.substr(7,key.length-1)] = unzip.files[key];
+							    assets.push(asset);
+						    } else if (key.substr(key.length-4,key.length-1) === ".txt") {
+							    txtFile = unzip.files[key];
+						    }
+					    }
+					    if (txtFile) {
+						    txtFile.async("string").then(function(data) {
+								var blocks = _private.helper.parseEngineFile(data);
+								var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
+								_private.loadBlocksEditReady(pageData);
+						    });
+					    }
+					});
+				} else if (file.type === "text/plain") {
+					var reader = new FileReader();
+					reader.onload = function(e) {
+					    var blocks = _private.helper.parseEngineFile(reader.result);
+					    var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
+					    _private.loadBlocksEditReady(pageData);
+					}
+					reader.readAsText(file);
+				}
+			});
+		};
+		
 	} else if(_protected.options.mode === 'qengine') {
 		// used for creating a Qengine File of the blocks
 		_private.datahandler.createFile = function() {
@@ -1592,6 +1794,7 @@ function Bengine(options,extensions) {
 		
 			/* get the block types & contents */
 			var QengineArray = [];
+			var QengineAssets = [];
 			if(blockCount > 0) {
 				var i = 0;
 				var ns = 1;
@@ -1629,6 +1832,11 @@ function Bengine(options,extensions) {
 						conditional = '';
 					}
 					
+					/* if there's an asset, grab it */
+					if (_private.extensibles[btype].saveFile) {
+    					QengineAssets = QengineAssets.concat(_private.extensibles[btype].saveFile('bengine-a-' + _private.engineID + '-' + bid));
+					}
+					
 					if(btype !== 'qstep') {
 						QengineArray.push(`{%${btype}:${namespace}:${conditional}\n${bcontent}\n%}\n\n`);
 					} else {
@@ -1642,15 +1850,72 @@ function Bengine(options,extensions) {
 			
 			var QengineFile = QengineArray.join('');
 			
-			var qd = window.open();
-			qd.document.open();
-			qd.document.write('<html><head><title>Qengine File</title></head><body>');
-			qd.document.write('<pre>' + QengineFile + '</pre>');
-			qd.document.write('</body></html>');
-			qd.document.close();
+			// create .zip file or just .njn
+			if (QengineAssets.length > 0) {
+				var zip = new Bengine.libs.zip();
+				zip.file(_private.pagePath.replace(/\//g,'') + ".txt", QengineFile);
+				var folder = zip.folder('assets');
+				for (asset of QengineAssets) {
+					try {
+						folder.file(asset.name, asset);
+					} catch(err) {
+						console.log(err);
+					}
+				}
+				zip.generateAsync({type:"blob"}).then(function (blob) {
+				    Bengine.libs.file.saveAs(blob,_private.pagePath.replace(/\//g,'') + '.zip');
+				});
+			} else {
+				var qd = window.open();
+				qd.document.open();
+				qd.document.write('<html><head><title>Qengine File</title></head><body>');
+				qd.document.write('<pre>' + QengineFile + '</pre>');
+				qd.document.write('</body></html>');
+				qd.document.close();
+			}
 		};
+		
+		_private.datahandler.uploadEngineFile = function() {
+			_private.datahandler.requestFile(".zip,.txt",function(file) {
+				if (file.type === "application/zip") {
+					var zip = new Bengine.libs.zip();
+					zip.loadAsync(file).then(function(unzip) {
+						var txtFile;
+						var assets = [];
+					    var keys = Object.keys(unzip.files);
+					    for (key of keys) {
+						    if (key.substr(0,7) === "assets/" && key.length > 7) {
+							    var asset = {};
+							    asset[key.substr(7,key.length-1)] = unzip.files[key];
+							    assets.push(asset);
+						    } else if (key.substr(key.length-4,key.length-1) === ".txt") {
+							    txtFile = unzip.files[key];
+						    }
+					    }
+					    if (txtFile) {
+						    txtFile.async("string").then(function(data) {
+								var blocks = _private.helper.parseEngineFile(data);
+								var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
+								_private.loadBlocksEditReady(pageData);
+						    });
+					    }
+					});
+				} else if (file.type === "text/plain") {
+					var reader = new FileReader();
+					reader.onload = function(e) {
+					    var blocks = _private.helper.parseEngineFile(reader.result);
+					    var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
+					    _private.loadBlocksEditReady(pageData);
+					}
+					reader.readAsText(file);
+				}
+			});
+		};
+		
 	} else {
-		_private.datahandler.createFile = function() {}; // should never reach here
+		// should never reach here
+		_private.datahandler.createFile = function() {}; 
+		_private.datahandler.uploadEngineFile = function() {};
 	}
 	
 	_private.datahandler.revertBlocks = function() {
@@ -1700,7 +1965,6 @@ function Bengine(options,extensions) {
 	};
 	
 	_private.datahandler.saveBlocks = function(which) {	
-		//// if pagePath is empty, disable save. TODO: future feature should create client side blobs of assets and download complete files locally
 		if(_private.pagePath.length < 1) {
 			console.log('Page path is empty, uploads are disabled.');
 			return;
@@ -1795,15 +2059,12 @@ function Bengine(options,extensions) {
 		xmlhttp.send(JSON.stringify(contentToSave));
 	};
 	
+	// upload media files to server
 	_private.datahandler.uploadProcess = function(bid,blockObj,file) {
-		//// if pagePath is empty, disable uploads. TODO: future feature should create client side blobs of assets and download complete files locally
 		if(_private.pagePath.length < 1) {
 			console.log('Page path is empty, uploads are disabled.');
 			return;
 		}
-		
-		/* create the block to host the media */
-		_private.blockMethod.createBlock(bid - 1,blockObj);
 
 		/* wrap the ajax request in a promise */
 		var promise = new Promise(function(resolve,reject) {
@@ -1851,24 +2112,21 @@ function Bengine(options,extensions) {
 				/* reset position */
 				_private.helper.position(0);
 			};
-
+			
 			xmlhttp.onreadystatechange = function() {
 				if (xmlhttp.readyState === XMLHttpRequest.DONE) {
 					switch(xmlhttp.status) {
-						case 500:
-							_private.blockMethod.deleteBlock(bid - 1);
-							reject({msg:"unknown",status:500,data:{}});
-							break;
-						case 0:
-							_private.blockMethod.deleteBlock(bid - 1);
-							reject({msg:"unknown",status:0,data:{}});
-							break;
 						case 200:
-							var spots = _private.helper.position(xmlhttp.responseText.length);
-							var val = xmlhttp.responseText.slice(spots[0],spots[1]).split(",");
+						    if (xmlhttp.responseText.substr(0,6) !== "Error:") {
+                                var spots = _private.helper.position(xmlhttp.responseText.length);
+                                var val = xmlhttp.responseText.slice(spots[0],spots[1]).split(",");
 							
-							resolve({msg:'Success',status:200,data:{spot:val[val.length - 1]}});
-							break;
+                                resolve({msg:'Success',status:200,data:{spot:val[val.length - 1]}});
+						    } else {
+    						    _private.blockMethod.deleteBlock(bid - 1);
+    						    reject({msg:xmlhttp.responseText,status:500,data:{}});
+						    }
+						    break;
 						default:
 							_private.blockMethod.deleteBlock(bid - 1);
 							var result = JSON.parse(xmlhttp.responseText);
@@ -1881,7 +2139,7 @@ function Bengine(options,extensions) {
 		});
 
 		promise.then(function(result) {
-			blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,result.data.spot);
+			blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,result.data.spot,null);
 
 			/* save blocks to temp table, indicated by false */
 			_private.display.updateSaveStatus("Not Saved");
@@ -1889,8 +2147,48 @@ function Bengine(options,extensions) {
 				saveBlocks(false);
 			}
 		},function(error) {
-			_private.alerts.log("Error: " + error.msg + " Status: " + error.status);
+			_private.alerts.log(error.msg);
 		});
+	};
+	
+	/*
+		accept - string of media types to accept
+		callback - function that receives file
+	*/
+	_private.datahandler.requestFile = function(accept,callback) {
+		var fileSelect = document.getElementById('bengine-file-select-' + _private.engineID);
+
+		if(accept !== 'undefined' && typeof accept === 'string') {
+			fileSelect.setAttribute("accept", accept);
+		} else {
+			fileSelect.setAttribute("accept","");
+		}
+		
+		fileSelect.click();
+		
+		fileSelect.onchange = function() {
+			/* grab the selected file */
+			var file = fileSelect.files[0];
+	
+			/* validation */
+			if(fileSelect.files.length > 0) {
+				if(file.size > (_protected.options.mediaLimit * 1048576)) {
+					_private.alerts.alert(`Files Must Be Less Than ${_protected.options.mediaLimit} MB`);
+					return;
+				}
+			} else {
+				/* do nothing, no file selected */
+				this.value = null;
+				return;
+			}
+			
+			if (typeof callback === "function") {
+				callback(file);
+			}
+			
+			/* resets selection to nothing, in case user decides to upload the same file, onchange will still fire */
+			this.value = null;
+		};
 	};
 	
 	_private.datahandler.uploadMedia = function(bid,blockObj) {
@@ -1943,30 +2241,48 @@ function Bengine(options,extensions) {
 				default:
 			}
 
+			function uploadAll(bid,blockObj,file) {
+				_private.blockMethod.createBlock(bid - 1,blockObj);
+				
+				blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,null,file);
+				
+				_private.datahandler.uploadProcess(bid,blockObj,file);
+				_private.display.updateSaveStatus("Not Saved");
+			}
+
 			if(checklengthvideo) {
 				vidTempElement.ondurationchange = function() {
 					if(this.duration > _protected.options.playableMediaLimit) {
-						_private.alerts.alert(`Videos Must Be Less Than ${_protected.options.playableMediaLimit} Seconds`);
+						_private.alerts.alert(`Video Files Must Be Less Than ${_protected.options.playableMediaLimit} Seconds`);
 					} else {
-						_private.datahandler.uploadProcess(bid,blockObj,file);
+						uploadAll(bid,blockObj,file);
 					}
 				};
 			} else if(checklengthaudio) {
 				audTempElement.ondurationchange = function() {
 					if(this.duration > _protected.options.playableMediaLimit) {
-						_private.alerts.alert(`Videos Must Be Less Than ${_protected.options.playableMediaLimit} Seconds`);
+						_private.alerts.alert(`Audio Files Must Be Less Than ${_protected.options.playableMediaLimit} Seconds`);
 					} else {
-						_private.datahandler.uploadProcess(bid,blockObj,file);
+						uploadAll(bid,blockObj,file);
 					}
 				};
 			} else {
-				_private.datahandler.uploadProcess(bid,blockObj,file);
+				uploadAll(bid,blockObj,file);
 			}
 			
 			/* resets selection to nothing, in case user decides to upload the same file, onchange will still fire */
 			this.value = null;
 		};
 	};
+};
+
+Bengine.libs = {
+	zip: null,
+	file: null,
+	'#':[
+		'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js',
+		'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js'
+	]
 };
 
 Bengine.setScriptPath = function(path) {
@@ -2030,6 +2346,9 @@ Bengine.loadBlocks = function(blocks) {
 	
 	window.addEventListener('error',failedBlockFunc,true);
 	
+	// add Bengine dependencies here
+	blocks = blocks.concat(Bengine.libs['#']);
+	
 	// append block script to load javascript
 	blocks.forEach(function(block) {
 		if(block.indexOf(".css") > -1) {
@@ -2064,6 +2383,17 @@ Bengine.loadBlocks = function(blocks) {
 				}
 			}
 			scripts.type = 'text/javascript';
+			scripts.onload = function(e) {
+			    var sc = e.path[0].src.split('/');
+			    var dep = sc[sc.length-1].split('.')[0];
+			    switch(dep) {
+				    case 'jszip':
+				        Bengine.libs.zip = JSZip; break;
+				    case 'FileSaver':
+				        Bengine.libs.file = { saveAs:window.saveAs }; break;
+				    default:
+			    }
+			};
 			document.getElementsByTagName('head')[0].appendChild(scripts);
 		}
 	});

@@ -123,6 +123,17 @@ this.saveContent = function(bid) {
 };
 
 /**************************************
+saveFile(bid)
+if your block uses a media asset, use this to return the asset for local saves
+
+bid - the block id, so you can getElementById
+***************************************/
+
+this.saveFile = function(bid) {
+	// just a text block, not media asset to return here
+};
+
+/**************************************
 showContent(block,content)
 creates your block in show mode. attach your custom block to the block element and return the block
 

@@ -6,7 +6,9 @@ Bengine.extensibles.video = new function Video() {
 	this.accept = ".avi,.flv,.mov,.mp4,.mpeg,.ogg,.rm,.webm,.wmv";
 
 	var thisBlock = this;
-	var _private = {};
+	var _private = {
+    	files:{}
+	};
 	
 	this.destroy = function() {
 		return;
@@ -21,10 +23,12 @@ Bengine.extensibles.video = new function Video() {
 		video.setAttribute("class","xVid");
 		video.volume = 0.8;
 		video.setAttribute("controls","controls");
+		video.setAttribute('data-url', null);
+        video.setAttribute('data-vid', thisBlock.p.createUUID());
 
 		var videosource = document.createElement("source");
 		if(bcontent['url']) {
-			videosource.setAttribute("src",bcontent['url']);
+			videosource.setAttribute("src",bcontent['content']);
 		}
 		videosource.setAttribute("type","video/mp4");
 
@@ -34,12 +38,32 @@ Bengine.extensibles.video = new function Video() {
 		return block;
 	};
 
-	this.afterDOMinsert = function(bid,data) {
-		if(data !== null) {
-			/* audio & video divs have their src set in an extra child node */
-			var mediatag = document.getElementById(bid).childNodes[0].childNodes[0];
-			mediatag.src = data;
-			mediatag.parentNode.load();
+    // 'video/mp4; codecs="avc1.640020"'
+	this.afterDOMinsert = function(bid,url,data) {
+		/* audio & video divs have their src set in an extra child node */
+		var videotag = document.getElementById(bid).childNodes[0];
+		
+		if (data) {
+			var vid = videotag.getAttribute('data-vid');
+			_private.files[vid] = data;
+			
+			videotag.childNodes[0].src = URL.createObjectURL(data);
+            videotag.load();
+		} else if (url !== null) {
+			var xhr = new XMLHttpRequest();
+            xhr.open('GET',url);
+            xhr.responseType = 'arraybuffer';
+			xhr.onload = function(e) {
+				var vid = videotag.getAttribute('data-vid');
+				var urlParts = url.split('/');
+				_private.files[vid] = new File([e.target.response], urlParts[urlParts.length-1], {type: "video/mp4"});
+				
+				videotag.childNodes[0].src = URL.createObjectURL(new Blob([e.target.response],{type: "video/mp4"}));
+				videotag.load();
+            };
+            xhr.send();
+            
+			videotag.setAttribute('data-url', url);
 		}
 	};
 	
@@ -47,8 +71,13 @@ Bengine.extensibles.video = new function Video() {
 	this.runData = null;
 
 	this.saveContent = function(bid) {
-		var mediastr = document.getElementById(bid).children[0].children[0].src;
-		return {'url':mediastr.replace(location.href.substring(0,location.href.lastIndexOf('/') + 1),"")};
+		var mediastr = document.getElementById(bid).children[0].getAttribute('data-url');
+		return {'content':mediastr.replace(location.href.substring(0,location.href.lastIndexOf('/') + 1),"")};
+	};
+	
+	this.saveFile = function(bid) {
+    	var vid = document.getElementById(bid).children[0].getAttribute('data-vid');
+    	return _private.files[vid];
 	};
 
 	this.showContent = function(block,bcontent) {
@@ -58,7 +87,7 @@ Bengine.extensibles.video = new function Video() {
 		video.setAttribute("controls","controls");
 
 		var videosource = document.createElement("source");
-		videosource.setAttribute("src",bcontent['url']);
+		videosource.setAttribute("src",bcontent['content']);
 		videosource.setAttribute("type","video/mp4");
 
 		video.appendChild(videosource);
