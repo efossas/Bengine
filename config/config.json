@@ -12,6 +12,7 @@
 	"filesizelimit":104857600,
 	"host":"localhost",
 	"level":"dev",
+	"logging":-1,
 	"persistence":
 	{
 		"database":"",

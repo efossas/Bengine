@@ -62,7 +62,7 @@ exports.process = function(request,response) {
 				var serveData = {
 					'input': fileinput,
 					'cmd': service.command
-				}
+				};
 			
 				serviceURL = request.app.get("services")[request.query.btype].url;
 
@@ -70,19 +70,23 @@ exports.process = function(request,response) {
                 fs.readFile(fullpath, (err,data) => {
                     if (err) {
                         response.end(String(err));
+                        _.log([err,uploadData],"error");
                         return;
                     }
                     /* upload file to service */
-                    orequest.put({
+                    var uploadData = {
                         url: serviceURL + "/upload/" + fileinput,
                         body: data
-                    },function(err,res,body) {
+                    };
+                    orequest.put(uploadData,function(err,res,body) {
                         if (err) {
                             response.end(String(err));
+                            _.log([err,uploadData],"error");
                             return;
                         }
                         if (res.statusCode !== 200) {
                             response.end('Error:' + body);
+                            _.log([body,uploadData],"error");
                             return;
                         }
                         /* send service request to transform file */
@@ -115,6 +119,7 @@ exports.process = function(request,response) {
 			} catch(err) {
 				// could not load service, just return uploaded file path
 				response.end("," + reldir + fileinput);
+				_.log([err],"error");
 			}
 		});
 	});	

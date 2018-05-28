@@ -197,7 +197,20 @@ function Bengine(options,extensions) {
 		_private.alerts = {
 			alert: function(msg) { window.alert(msg); },
 			confirm: function(msg) { window.confirm(msg); },
-			log: function(msg) { console.log(msg); }
+			log: function(msg,type) { 
+				switch(type) {
+					case undefined:
+					case "log":
+						console.log(msg); break;
+					case "warn":
+					case "warning":
+						console.warn(msg); break;
+					case "error":
+						console.error(msg); break;
+					default:
+						console.log(msg);
+				}
+			}
 		};
 	} else {
 		_private.alerts = Object.assign({},extensions.alerts);
@@ -2147,7 +2160,7 @@ function Bengine(options,extensions) {
 				saveBlocks(false);
 			}
 		},function(error) {
-			_private.alerts.log(error.msg);
+			_private.alerts.log(error.msg,"error");
 		});
 	};
 	
