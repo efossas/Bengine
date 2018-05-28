@@ -1,6 +1,6 @@
 node_modules/
 ssl/
-logs/
+logs/*
 !logs/README.md
 .DS_Store
 public/content/*
