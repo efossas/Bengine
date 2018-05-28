@@ -1,3 +1,6 @@
 node_modules/
 ssl/
 .DS_Store
+public/content/*
+!public/content/demo/
+!public/content/README.md
