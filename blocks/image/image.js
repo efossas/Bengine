@@ -6,9 +6,15 @@ Bengine.extensibles.image = new function Image() {
 	this.accept = ".bmp,.bmp2,.bmp3,.jpeg,.jpg,.pdf,.png,.svg";
 
 	var thisBlock = this;
-	var _private = {};
-	
-	this.destroy = function() {
+	var _private = {
+    	files:{},
+    	objectURLs:{}
+	};
+
+	this.destroy = function(block) {
+		var url = block.childNodes[0].getAttribute('data-url');
+		delete _private.files[url];
+		URL.revokeObjectURL(_private.objectURLs[url]);
 		return;
 	};
 	
@@ -19,9 +25,18 @@ Bengine.extensibles.image = new function Image() {
 	this.insertContent = function(block,bcontent) {
 		var ximg = document.createElement("img");
 		ximg.setAttribute("class","xImg");
+		ximg.setAttribute('data-url', null);
 		
-		if (bcontent['url']) {
-			ximg.src = bcontent['url'];
+		if (bcontent['content']) {
+			var url = bcontent['content'];
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+			
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "image/png"});				
+				ximg.src =_private.objectURLs[url] = URL.createObjectURL(new Blob([e.target.response],{type: "image/png"}));
+	        });
+			
+			ximg.setAttribute('data-url', url);
 		}
 
 		block.appendChild(ximg);
@@ -29,11 +44,18 @@ Bengine.extensibles.image = new function Image() {
 		return block;
 	};
 
-	this.afterDOMinsert = function(bid,data) {
-		if(data !== null) {
+	this.afterDOMinsert = function(bid,url) {
+		if (url) {
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
 			var imagetag = document.getElementById(bid).childNodes[0];
-			imagetag.src = data;
-		}
+
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "image/png"});				
+				imagetag.src = _private.objectURLs[url] = URL.createObjectURL(new Blob([e.target.response],{type: "image/png"}));
+	        });
+    		
+    		imagetag.setAttribute('data-url', url);
+    	}
 	};
 	
 	this.runBlock = null;
@@ -41,14 +63,20 @@ Bengine.extensibles.image = new function Image() {
 
 	this.saveContent = function(bid) {
 		/* replace() is for escaping backslashes and making relative path */
-		var imagestr = document.getElementById(bid).children[0].src;
-		return {'url':imagestr.replace(location.href.substring(0,location.href.lastIndexOf('/') + 1),"")};
+		var imagestr = document.getElementById(bid).children[0].getAttribute('data-url');
+		return {'content':imagestr.replace(location.href.substring(0,location.href.lastIndexOf('/') + 1),"")};
+	};
+	
+	this.saveFile = function(bid) {
+    	return _private.files[document.getElementById(bid).children[0].getAttribute('data-url')];
 	};
 
-	this.showContent = function(block,content) {
+	this.showContent = function(block,bcontent) {
 		var ximg = document.createElement("img");
 		ximg.setAttribute("class","xImg-show");
-		ximg.src = bcontent['url'];
+		
+		var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + bcontent['content'];
+		ximg.src = fullUrl;
 
 		block.appendChild(ximg);
 

@@ -1,13 +1,17 @@
 /* eslint-env node, es6 */
 /* eslint no-console: "off" */
 
+/* globals */
+global.ENGINE_MAIN_DIR = __dirname;
+
 'use strict';
 
 const cluster = require('cluster');
 const fs = require("fs");
+const _ = require("./lib/util.js");
 
 function crash(err) {
-	console.log(err);
+	_.log([err],"fatal");
 	process.exit();
 }
 
@@ -22,6 +26,7 @@ function crash(err) {
 	filesizelimit (number)	- the max file size limit for uploaded files in bytes
 	host (string)			- ???
 	level (string)			- [.*dev.*] | [.*sta.*] | [.*pro.*] : run Bengine in development, staging, or production mode
+	logging (number)		- 1: all logging turned on, 0: all logging turned off, -1: only log errors (logs/ directory) (can be boolean)
 	persistence (object)	- configuration info to connect/use for persistent data
 		type (string)			- [.*mysql.*] | [.*mongo.*] | [.*file.*]
 	port (number)			- the port Bengine will run on
@@ -56,6 +61,9 @@ config = require('./configcheck.js')(config);
 if(config.hasOwnProperty("fatal")) {
 	crash(config["fatal"]);
 }
+
+/* set any global config variables here */
+global.ENGINE_LOGGING = config["logging"];
 
 /*
 	Section: Fork Server Processes

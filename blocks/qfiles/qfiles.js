@@ -6,7 +6,9 @@ Bengine.extensibles.files = new function Files() {
 	this.accept = null;
 
 	var thisBlock = this;
-	_private = {};
+	_private = {
+		fileBlobs:{}
+	};
 	
 	_private.getFiles = function(namespace,files,task) {			
 		let filesStr = files.replace(/ /g,'').replace(/\n$/,'');
@@ -26,6 +28,14 @@ Bengine.extensibles.files = new function Files() {
 			if(cnt > 0) {
 				thisBlock.d.variables[namespace] = result.data.files;
 				thisBlock.p.alerts.log('complete','success');
+				
+				for(key in result.data.files) {
+					thisBlock.p.getLocalResource(key,result.data.files[key]).then(function(result) {
+						_private.fileBlobs[result.name] = result;
+					}).catch(function(err) {
+						thisBlock.p.alerts.log('File not available for engine file download. Could not get ' + err,'error');
+					});
+				}
 			}
 			if(task) task.done = true;
 		},function(error) {
@@ -92,9 +102,29 @@ Bengine.extensibles.files = new function Files() {
 		var content= document.getElementById(bid).children[2].value;
 		return {'content':content,'namespace':namespace,'conditional':conditional};
 	};
+	
+	this.saveFile = function(bid) {
+		var array = [];
+		var content= document.getElementById(bid).children[2].value;
+		var splits = content.split('\n');
+		for (path of splits) {
+			var tpath = path.trim();
+			// just save local paths, avoid empty lines
+			if (path.length > 0 && path.indexOf("http") < 0) {
+				// user needs to run block, before saveFile will work...
+				if(_private.fileBlobs[path]) {
+					array.push(_private.fileBlobs[path]);
+				} else {
+					thisBlock.p.alerts.alert('The <b>' + path + '</b> file has not been retrieved. Run the file block to retrieve them if you want to save those files.');
+				}
+			}
+		}
+
+		return array;
+	};
 
 	this.showContent = function(block,bcontent) {
-		// this block shows nothing, it retrives files on the back-end
+		// this block shows nothing, it retrieves files on the back-end
 		return block;
 	};
 

@@ -78,11 +78,11 @@
 }
 
 .bengine-addbtn {
-	background-color: white;
+	background-color: lightgreen;
 }
 
 .bengine-addbtn:hover {
-	background-color: lightgray;
+	background-color: lawngreen;
 }
 
 .bengine-delbtn {

@@ -1,0 +1,1 @@
+../../../blocks/mermaid/mermaid.js

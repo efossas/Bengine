@@ -11,13 +11,16 @@ function BengineDefaultDisplay(engineID,dataHandlers) {
 		divDisplay.className = "bengine-savebar row";
 		divDisplay.innerHTML = `
 			<div class="row">
-				<div class="col col-50">
+				<div class="col col-46">
 						<div id="bengine-savestatus-${engineID}" class="bengine-savestatus">Saved</div>
 				</div>
-				<div class="col col-25">
+				<div class="col col-18">
+					<button id="bengine-uploadpage-${engineID}" class="bengine-blockbtn bengine-menubtn" style="font-size:0.83em">&#x2B06</button>
+				</div>
+				<div class="col col-18">
 					<button id="bengine-downloadpage-${engineID}" class="bengine-blockbtn bengine-menubtn" style="font-size:0.83em">&#x2B07</button>
 				</div>
-				<div class="col col-25">
+				<div class="col col-18">
 					<button id="bengine-savepage-${engineID}" class="bengine-blockbtn bengine-menubtn">&#x2713</button>
 				</div>
 			</div>
@@ -37,6 +40,11 @@ function BengineDefaultDisplay(engineID,dataHandlers) {
 		
 		document.getElementById("bengine-downloadpage-" + this.engineID).onclick = function() {
 			_bdd.dataHandlers.createFile();
+			this.blur();
+		}
+		
+		document.getElementById("bengine-uploadpage-" + this.engineID).onclick = function() {
+			_bdd.dataHandlers.uploadEngineFile();
 			this.blur();
 		}
 	}

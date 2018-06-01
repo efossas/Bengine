@@ -28,7 +28,7 @@ exports.process = function(request,response) {
     
 	    var serviceURL = null;
 	    try {
-	    	serviceURL = request.app.get("services")[code.type];
+	    	serviceURL = request.app.get("services")[code.type].url;
 	    } catch(err) {
 		    rest.respond(response,400,String(error),{});
 			return;

@@ -176,6 +176,8 @@ logger._print('sorted array = [' + D.join(', ') + ']');
 		var content = _private.AlgoVisualizer.state.editor.codeEditor.getValue();
 		return {'content':content};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		let AVID = thisBlock.p.createUUID();

@@ -77,7 +77,7 @@ afterDOMinsert(bid,data)
 any code to run after the block has been attached to the dom
 
 bid - the block id, so you can getElementById
-data - this is always null, it might become something in later versions
+data - this is only used for media blocks, it will be set to a url after back-end media processing
 ***************************************/
 
 this.afterDOMinsert = function(bid,data) {
@@ -120,6 +120,17 @@ bid - the block id, so you can getElementById
 this.saveContent = function(bid) {
 	var textstr = document.getElementById('bengine-a' + bid).children[0].value;
 	return textstr;
+};
+
+/**************************************
+saveFile(bid)
+if your block uses a media asset, use this to return the asset for local saves
+
+bid - the block id, so you can getElementById
+***************************************/
+
+this.saveFile = function(bid) {
+	// just a text block, not media asset to return here
 };
 
 /**************************************

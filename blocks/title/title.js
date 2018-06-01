@@ -51,6 +51,8 @@ Bengine.extensibles.title = new function Title() {
 	this.saveContent = function(bid) {
 		return {'content':document.getElementById(bid).children[0].value};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {		
 		try {
