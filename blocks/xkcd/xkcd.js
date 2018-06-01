@@ -51,7 +51,7 @@ Bengine.extensibles.xkcdi = new function Xkcdi() {
 		xkcdImg.setAttribute("class","xKcd-show");
 		
 		if(!thisBlock.p.emptyObject(bcontent)) {
-			xkcdImg.src = _private.xkcdURL + bcontent['url'];
+			xkcdImg.src = _private.xkcdURL + bcontent['content'];
 		} else {
 			var nmbr = Math.floor(Math.random() * 1829);
 			xkcdImg.src = _private.xkcdURL + _private.availableXKCD[nmbr].url;
@@ -78,8 +78,10 @@ Bengine.extensibles.xkcdi = new function Xkcdi() {
 	this.saveContent = function(bid) {
 		/* get the relative path */
 		var imagestr = document.getElementById(bid).children[0].children[0].src.split("/");
-		return {'url':imagestr[imagestr.length - 1]};
+		return {'content':imagestr[imagestr.length - 1]};
 	};
+
+    this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var xkcdDiv = document.createElement("div");
@@ -89,7 +91,7 @@ Bengine.extensibles.xkcdi = new function Xkcdi() {
 		xkcdImg.setAttribute("class","xKcd-show");
 		
 		if(!thisBlock.p.emptyObject(bcontent)) {
-			xkcdImg.src = _private.xkcdURL + bcontent['url'];
+			xkcdImg.src = _private.xkcdURL + bcontent['content'];
 		} else {
 			var nmbr = Math.floor(Math.random() * _private.xkcdCount);
 			xkcdImg.src = _private.xkcdURL + _private.availableXKCD[nmbr].url;

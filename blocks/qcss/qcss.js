@@ -101,6 +101,8 @@ Bengine.extensibles.qcss = new function Qcss() {
 		let content = document.getElementById(bid).children[2].innerText;
 		return {'content':content,'namespace':namespace,'conditional':conditional};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var qcssBlock = document.createElement('div');

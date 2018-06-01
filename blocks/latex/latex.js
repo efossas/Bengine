@@ -112,6 +112,8 @@ Bengine.extensibles.latex = new function Latex() {
 	this.saveContent = function(bid) {
 		return {'content':document.getElementById(bid).children[1].innerHTML};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var latexpreview = document.createElement('div');

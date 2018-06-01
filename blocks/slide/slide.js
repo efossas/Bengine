@@ -6,9 +6,10 @@ Bengine.extensibles.slide = new function Slide() {
 	this.accept = ".pdf,.ppt,.pptx,.pps,.ppsx";
 
 	var thisBlock = this;
-	var _private = {};
-	
-	_private.pdfObjects = {};
+	var _private = {
+    	files:{},
+    	pdfObjects:{}
+	};
 	
 	_private.renderPDF = function(pdfDoc,pageNum,canvas) {
 		/*
@@ -41,9 +42,37 @@ Bengine.extensibles.slide = new function Slide() {
 				/// update stuff here, page has been rendered
 			});
 		});
-	}
+	};
 	
-	this.destroy = function() {
+	_private.pageTurn = function(event) {
+    	// click event - ((viewport width - pdf width) / 2) <- margin from pdf to left side of browser
+    	var X = event.pageX - ((window.innerWidth - this.clientWidth) / 2);
+
+		/* get the <canvas> tag, current page, pdf url/id, and the pdf total page count */
+		var canvas = this.childNodes[0];
+		var pageNum = canvas.getAttribute("data-page");
+		var pdfID = canvas.getAttribute("id");
+		var pageCount = _private.pdfObjects[pdfID].numPages;
+
+		/* determine whether left or right side was clicked, then render prev or next page */
+		if(X > this.clientWidth / 2) {
+			if(pageNum < pageCount) {
+				pageNum++;
+				canvas.setAttribute("data-page",pageNum);
+				_private.renderPDF(_private.pdfObjects[pdfID],pageNum,canvas);
+			}
+		} else {
+			if(pageNum > 1) {
+				pageNum--;
+				canvas.setAttribute("data-page",pageNum);
+				_private.renderPDF(_private.pdfObjects[pdfID],pageNum,canvas);
+			}
+		}
+	};
+	
+	this.destroy = function(block) {
+		var url = block.childNodes[0].getAttribute('data-url');
+		delete _private.files[url];
 		return;
 	};
 	
@@ -65,64 +94,61 @@ Bengine.extensibles.slide = new function Slide() {
 		canvas.setAttribute("class","xSli");
 		canvas.setAttribute("id",content);
 		canvas.setAttribute("data-page","1");
+		canvas.setAttribute("data-url", null);
 
 		block.appendChild(canvas);
 
 		/* if block was just made, don't try to load pdf */
 		if (!thisBlock.p.emptyObject(bcontent)) {
-			pdfjsLib.getDocument(bcontent['url']).then(function(pdfObj) {
-				_private.pdfObjects[bcontent['url']] = pdfObj;
-
-				var tag = block.childNodes[0];
-
-				_private.renderPDF(pdfObj,1,tag);
-			});
+			if (bcontent['content']) {
+				var url = bcontent['content'];
+				var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+				
+				thisBlock.p.getMediaFile(fullUrl,function(e) {
+					_private.files[url] = new File([e.target.response], url, {type: "application/pdf"});				
+					var pdfdata = {
+						data:e.target.response
+					};
+					
+					pdfjsLib.getDocument(pdfdata).then(function(pdfObj) {
+						_private.pdfObjects[bcontent['content']] = pdfObj;
+						_private.renderPDF(pdfObj,1,canvas);
+					});
+		        });
+				
+				canvas.setAttribute('data-url', url);
+			}
 		}
 
 		/* event listener for changing slides left & right */
-		block.onmouseup = function(event) {
-			var X = event.pageX - this.offsetLeft;
-			/// var Y = event.pageY - this.offsetTop;
-
-			/* get the <canvas> tag, current page, pdf url/id, and the pdf total page count */
-			var canvas = this.childNodes[0];
-			var pageNum = canvas.getAttribute("data-page");
-			var pdfID = canvas.getAttribute("id");
-			var pageCount = _private.pdfObjects[pdfID].numPages;
-
-			/* determine whether left or right side was clicked, then render prev or next page */
-			if(X > this.offsetWidth / 1.7) {
-				if(pageNum < pageCount) {
-					pageNum++;
-					canvas.setAttribute("data-page",pageNum);
-					_private.renderPDF(_private.pdfObjects[pdfID],pageNum,canvas);
-				}
-			} else {
-				if(pageNum > 1) {
-					pageNum--;
-					canvas.setAttribute("data-page",pageNum);
-					_private.renderPDF(_private.pdfObjects[pdfID],pageNum,canvas);
-				}
-			}
-		};
+		block.onmouseup = _private.pageTurn;
 
 		return block;
 	};
 
-	this.afterDOMinsert = function(bid,data) {
+	this.afterDOMinsert = function(bid,url) {
 		var objCopy = this;
-		if(data !== null) {
-			/* add the pdf to the pdfObjects array and render the first page */
-			pdfjsLib.getDocument(deparseBlock(data)).then(function(pdfObj) {
+		
+		if (url) {
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+			var canvas = document.getElementById(bid).childNodes[0];
 
-				_private.pdfObjects[data] = pdfObj;
-
-				var slidetag = document.getElementById(bid).childNodes[0];
-				slidetag.setAttribute("id",data);
-
-				_private.renderPDF(pdfObj,1,slidetag);
-			});
-		}
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "application/pdf"});
+				var pdfdata = {
+					data:e.target.response
+				};				
+				
+				/* add the pdf to the pdfObjects array and render the first page */
+				pdfjsLib.getDocument(pdfdata).then(function(pdfObj) {
+					_private.pdfObjects[url] = pdfObj;
+					canvas.setAttribute("id",url);
+					_private.renderPDF(pdfObj,1,canvas);
+				});
+	        });
+    		
+    		canvas.setAttribute('data-url', url);
+    	}
 	};
 	
 	this.runBlock = null;
@@ -131,55 +157,33 @@ Bengine.extensibles.slide = new function Slide() {
 	this.saveContent = function(bid) {
 		/* replace() is for escaping backslashes and making relative path */
 		var slidestr = document.getElementById(bid).children[0].id;
-		return {'url':slidestr.replace(location.href.substring(0,location.href.lastIndexOf('/') + 1),"")};
+		return {'content':slidestr.replace(location.href.substring(0,location.href.lastIndexOf('/') + 1),"")};
+	};
+	
+	this.saveFile = function(bid) {
+		return _private.files[document.getElementById(bid).children[0].getAttribute('data-url')];
 	};
 
 	this.showContent = function(block,bcontent) {		
 		/* data-page attribute keeps track of which page is being displayed */
 		var canvas = document.createElement("canvas");
 		canvas.setAttribute("class","xSli-show");
-		canvas.setAttribute("id",bcontent['url']);
+		canvas.setAttribute("id",bcontent['content']);
 		canvas.setAttribute("data-page","1");
 
 		block.appendChild(canvas);
 
 		/* if block was just made, don't try to load pdf */
 		if (bcontent !== "") {
-			pdfjsLib.getDocument(content).then(function(pdfObj) {
-				_private.pdfObjects[content] = pdfObj;
-
-				var tag = block.childNodes[0];
-
-				_private.renderPDF(pdfObj,1,tag);
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + bcontent['content'];
+			pdfjsLib.getDocument(fullUrl).then(function(pdfObj) {
+				_private.pdfObjects[bcontent['content']] = pdfObj;
+				_private.renderPDF(pdfObj,1,canvas);
 			});
 		}
 
 		/* event listener for changing slides left & right */
-		block.onmouseup = function(event) {
-			var X = event.pageX - this.offsetLeft;
-			/// var Y = event.pageY - this.offsetTop;
-
-			/* get the <canvas> tag, current page, pdf url/id, and the pdf total page count */
-			var canvas = this.childNodes[0];
-			var pageNum = canvas.getAttribute("data-page");
-			var pdfID = canvas.getAttribute("id");
-			var pageCount = _private.pdfObjects[pdfID].numPages;
-
-			/* determine whether left or right side was clicked, then render prev or next page */
-			if(X > this.offsetWidth / 1.7) {
-				if(pageNum < pageCount) {
-					pageNum++;
-					canvas.setAttribute("data-page",pageNum);
-					_private.renderPDF(_private.pdfObjects[pdfID],pageNum,canvas);
-				}
-			} else {
-				if(pageNum > 1) {
-					pageNum--;
-					canvas.setAttribute("data-page",pageNum);
-					_private.renderPDF(_private.pdfObjects[pdfID],pageNum,canvas);
-				}
-			}
-		};
+		block.onmouseup = _private.pageTurn;
 
 		return block;
 	};

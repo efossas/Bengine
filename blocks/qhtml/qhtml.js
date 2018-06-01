@@ -215,6 +215,8 @@ Bengine.extensibles.qhtml = new function Qhtml() {
 		var html = document.getElementById(bid).children[3].value;
 		return {'content':html,'namespace':namespace,'conditional':conditional};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var qhtmlpreview = document.createElement('div');

@@ -66,6 +66,8 @@ Bengine.extensibles.qstore = new function Qstore() {
 		let content = document.getElementById(bid).children[2].value;
 		return {'content':content,'namespace':namespace,'conditional':conditional};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 		var str = '<div class="xQst-show">' + bcontent['content'] + '</div>';

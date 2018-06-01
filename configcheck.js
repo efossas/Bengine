@@ -79,6 +79,19 @@ module.exports = function(config) {
 		return {"fatal":"Incorrect value for 'level'. Must be: development | stage | production"};
 	}
 	
+	/* check "logging" */
+	if(typeof config["logging"] !== "boolean" && typeof config["logging"] !== "number") {
+		report.push("Missing/Invalid -> 'logging' : Must be boolean, 0, -1, or 1.");
+		config["logging"] = false;
+	} else {
+		config["logging"] = Number(config["logging"]);
+		if (config["logging"] > 1) {
+			config["logging"] = 1;
+		} else if (config["logging"] < -1) {
+			config["logging"] = -1;
+		}
+	}
+	
 	/* check "persistence" */
 	if(!config.hasOwnProperty("persistence") || typeof config["persistence"] !== "object" || typeof config["persistence"] === null) {
 		report.push("Missing/Invalid -> 'persistence' : Must be object.");

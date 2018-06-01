@@ -57,7 +57,7 @@ Bengine.extensibles.sage = new function Sage() {
 			text = bcontent['content'];
 			ns = bcontent['namespace'];
 			cond = bcontent['conditional'];
-			vars = bcontent['vars'];
+			vars = bcontent['vars'] ? bcontent['vars'] : ''; // this may have been lost when downloading/uploading to/from njn file
 		}
 		
 		var CodeMirrorBlock = CodeMirror(sageBlock,{
@@ -128,6 +128,8 @@ Bengine.extensibles.sage = new function Sage() {
 		var blockVars = document.getElementById(bid).children[3].value;
 		return {'content':blockContent,'namespace':blockNamespace,'conditional':blockConditional,'vars':blockVars};
 	};
+	
+	this.saveFile = null;
 
 	this.showContent = function(block,bcontent) {
 	    var sageBlock = document.createElement("div");
