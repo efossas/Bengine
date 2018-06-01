@@ -57,7 +57,7 @@ Bengine.extensibles.sage = new function Sage() {
 			text = bcontent['content'];
 			ns = bcontent['namespace'];
 			cond = bcontent['conditional'];
-			vars = bcontent['vars'];
+			vars = bcontent['vars'] ? bcontent['vars'] : ''; // this may have been lost when downloading/uploading to/from njn file
 		}
 		
 		var CodeMirrorBlock = CodeMirror(sageBlock,{

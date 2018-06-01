@@ -77,7 +77,7 @@ afterDOMinsert(bid,data)
 any code to run after the block has been attached to the dom
 
 bid - the block id, so you can getElementById
-data - this is always null, it might become something in later versions
+data - this is only used for media blocks, it will be set to a url after back-end media processing
 ***************************************/
 
 this.afterDOMinsert = function(bid,data) {

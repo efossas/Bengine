@@ -58,7 +58,7 @@ Bengine.extensibles.python2 = new function Python2() {
 			text = bcontent['content'];
 			ns = bcontent['namespace'];
 			cond = bcontent['conditional'];
-			vars = bcontent['vars'];
+			vars = bcontent['vars'] ? bcontent['vars'] : ''; // this may have been lost when downloading/uploading to/from njn file
 		}
 		
 		var CodeMirrorBlock = CodeMirror(pyBlock,{

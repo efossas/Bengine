@@ -7,10 +7,14 @@ Bengine.extensibles.image = new function Image() {
 
 	var thisBlock = this;
 	var _private = {
-    	files:{}
+    	files:{},
+    	objectURLs:{}
 	};
-	
-	this.destroy = function() {
+
+	this.destroy = function(block) {
+		var url = block.childNodes[0].getAttribute('data-url');
+		delete _private.files[url];
+		URL.revokeObjectURL(_private.objectURLs[url]);
 		return;
 	};
 	
@@ -22,10 +26,17 @@ Bengine.extensibles.image = new function Image() {
 		var ximg = document.createElement("img");
 		ximg.setAttribute("class","xImg");
 		ximg.setAttribute('data-url', null);
-		ximg.setAttribute('data-iid', thisBlock.p.createUUID());
 		
 		if (bcontent['content']) {
-			ximg.src = bcontent['content'];
+			var url = bcontent['content'];
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+			
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "image/png"});				
+				ximg.src =_private.objectURLs[url] = URL.createObjectURL(new Blob([e.target.response],{type: "image/png"}));
+	        });
+			
+			ximg.setAttribute('data-url', url);
 		}
 
 		block.appendChild(ximg);
@@ -33,28 +44,18 @@ Bengine.extensibles.image = new function Image() {
 		return block;
 	};
 
-	this.afterDOMinsert = function(bid,url,data) {
-    	var imagetag = document.getElementById(bid).childNodes[0];
-		if (data) {
-    		var iid = imagetag.getAttribute('data-iid');
-			_private.files[iid] = data;;
-    		
-            imagetag.src = URL.createObjectURL(data);
-		} else if (url !== null) {
-    		var xhr = new XMLHttpRequest();
-            xhr.open('GET',url);
-            xhr.responseType = 'arraybuffer';
-			xhr.onload = function(e) {
-				var iid = imagetag.getAttribute('data-iid');
-				var urlParts = url.split('/');
-				_private.files[iid] = new File([e.target.response], urlParts[urlParts.length-1], {type: "image/png"});
-				
-				imagetag.src = URL.createObjectURL(new Blob([e.target.response],{type: "image/png"}));
-            };
-            xhr.send();
+	this.afterDOMinsert = function(bid,url) {
+		if (url) {
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+			var imagetag = document.getElementById(bid).childNodes[0];
+
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "image/png"});				
+				imagetag.src = _private.objectURLs[url] = URL.createObjectURL(new Blob([e.target.response],{type: "image/png"}));
+	        });
     		
     		imagetag.setAttribute('data-url', url);
-		}
+    	}
 	};
 	
 	this.runBlock = null;
@@ -67,14 +68,15 @@ Bengine.extensibles.image = new function Image() {
 	};
 	
 	this.saveFile = function(bid) {
-    	var iid = document.getElementById(bid).children[0].getAttribute('data-iid');
-    	return _private.files[iid];
+    	return _private.files[document.getElementById(bid).children[0].getAttribute('data-url')];
 	};
 
-	this.showContent = function(block,content) {
+	this.showContent = function(block,bcontent) {
 		var ximg = document.createElement("img");
 		ximg.setAttribute("class","xImg-show");
-		ximg.src = bcontent['content'];
+		
+		var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + bcontent['content'];
+		ximg.src = fullUrl;
 
 		block.appendChild(ximg);
 

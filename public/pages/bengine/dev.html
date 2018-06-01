@@ -10,7 +10,7 @@
 	<body class="body" style="background-color:black">
 		<div class="col col-5"></div>
 			<div class="col col-90">
-				<div id="content"><p style="color:white">fetching blocks...</p></div>
+				<div id="content"></div>
 			</div>
 		<div class="col col-5"></div>
 		
@@ -40,7 +40,7 @@
 				'video',
 				'wysiwyg',
 				'xkcd'
-			],{development:true}).then(function(result) {
+			],"content").then(function(result) {
 				if(result.length > 0) window.alert("Bengine was unable to load these blocks: " + result);
 
 				ENGINE = new Bengine({},{

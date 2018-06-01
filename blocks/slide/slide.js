@@ -7,10 +7,9 @@ Bengine.extensibles.slide = new function Slide() {
 
 	var thisBlock = this;
 	var _private = {
-    	files:{}
+    	files:{},
+    	pdfObjects:{}
 	};
-	
-	_private.pdfObjects = {};
 	
 	_private.renderPDF = function(pdfDoc,pageNum,canvas) {
 		/*
@@ -71,7 +70,9 @@ Bengine.extensibles.slide = new function Slide() {
 		}
 	};
 	
-	this.destroy = function() {
+	this.destroy = function(block) {
+		var url = block.childNodes[0].getAttribute('data-url');
+		delete _private.files[url];
 		return;
 	};
 	
@@ -93,19 +94,30 @@ Bengine.extensibles.slide = new function Slide() {
 		canvas.setAttribute("class","xSli");
 		canvas.setAttribute("id",content);
 		canvas.setAttribute("data-page","1");
-		canvas.setAttribute("data-sid", thisBlock.p.createUUID());
+		canvas.setAttribute("data-url", null);
 
 		block.appendChild(canvas);
 
 		/* if block was just made, don't try to load pdf */
 		if (!thisBlock.p.emptyObject(bcontent)) {
-			pdfjsLib.getDocument(bcontent['content']).then(function(pdfObj) {
-				_private.pdfObjects[bcontent['content']] = pdfObj;
-
-				var tag = block.childNodes[0];
-
-				_private.renderPDF(pdfObj,1,tag);
-			});
+			if (bcontent['content']) {
+				var url = bcontent['content'];
+				var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+				
+				thisBlock.p.getMediaFile(fullUrl,function(e) {
+					_private.files[url] = new File([e.target.response], url, {type: "application/pdf"});				
+					var pdfdata = {
+						data:e.target.response
+					};
+					
+					pdfjsLib.getDocument(pdfdata).then(function(pdfObj) {
+						_private.pdfObjects[bcontent['content']] = pdfObj;
+						_private.renderPDF(pdfObj,1,canvas);
+					});
+		        });
+				
+				canvas.setAttribute('data-url', url);
+			}
 		}
 
 		/* event listener for changing slides left & right */
@@ -114,34 +126,29 @@ Bengine.extensibles.slide = new function Slide() {
 		return block;
 	};
 
-	this.afterDOMinsert = function(bid,url,data) {
+	this.afterDOMinsert = function(bid,url) {
 		var objCopy = this;
 		
-		if(url !== null) {        	
-        	url = window.location.origin + url;
-        	
-        	var xhr = new XMLHttpRequest();
-            xhr.open('GET',url);
-            xhr.responseType = 'arraybuffer';
-			xhr.onload = function(e) {
-    			var canvas = document.getElementById(bid).childNodes[0];
-				var sid = canvas.getAttribute('data-sid');
-				var urlParts = url.split('/');
-				_private.files[sid] = new File([e.target.response], urlParts[urlParts.length-1], {type: "application/pdf"});
-            };
-            xhr.send();
+		if (url) {
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+			var canvas = document.getElementById(bid).childNodes[0];
+
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "application/pdf"});
+				var pdfdata = {
+					data:e.target.response
+				};				
+				
+				/* add the pdf to the pdfObjects array and render the first page */
+				pdfjsLib.getDocument(pdfdata).then(function(pdfObj) {
+					_private.pdfObjects[url] = pdfObj;
+					canvas.setAttribute("id",url);
+					_private.renderPDF(pdfObj,1,canvas);
+				});
+	        });
     		
-			/* add the pdf to the pdfObjects array and render the first page */
-			pdfjsLib.getDocument(url).then(function(pdfObj) {
-
-				_private.pdfObjects[url] = pdfObj;
-
-				var slidetag = document.getElementById(bid).childNodes[0];
-				slidetag.setAttribute("id",url);
-
-				_private.renderPDF(pdfObj,1,slidetag);
-			});
-		}
+    		canvas.setAttribute('data-url', url);
+    	}
 	};
 	
 	this.runBlock = null;
@@ -154,7 +161,7 @@ Bengine.extensibles.slide = new function Slide() {
 	};
 	
 	this.saveFile = function(bid) {
-		return _private.files[document.getElementById(bid).children[0].getAttribute('data-sid')];
+		return _private.files[document.getElementById(bid).children[0].getAttribute('data-url')];
 	};
 
 	this.showContent = function(block,bcontent) {		
@@ -168,12 +175,10 @@ Bengine.extensibles.slide = new function Slide() {
 
 		/* if block was just made, don't try to load pdf */
 		if (bcontent !== "") {
-			pdfjsLib.getDocument(content).then(function(pdfObj) {
-				_private.pdfObjects[content] = pdfObj;
-
-				var tag = block.childNodes[0];
-
-				_private.renderPDF(pdfObj,1,tag);
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + bcontent['content'];
+			pdfjsLib.getDocument(fullUrl).then(function(pdfObj) {
+				_private.pdfObjects[bcontent['content']] = pdfObj;
+				_private.renderPDF(pdfObj,1,canvas);
 			});
 		}
 

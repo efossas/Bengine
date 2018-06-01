@@ -7,10 +7,14 @@ Bengine.extensibles.audio = new function Audio() {
 
 	var thisBlock = this;
 	var _private = {
-    	files:{}
+    	files:{},
+    	objectURLs:{}
 	};
 	
-	this.destroy = function() {
+	this.destroy = function(block) {
+		var url = block.childNodes[0].getAttribute('data-url');
+		delete _private.files[url];
+		URL.revokeObjectURL(_private.objectURLs[url]);
 		return;
 	};
 
@@ -24,13 +28,22 @@ Bengine.extensibles.audio = new function Audio() {
 		audio.volume = 0.8;
 		audio.setAttribute("controls","controls");
 		audio.setAttribute('data-url', null);
-		audio.setAttribute('data-aid', thisBlock.p.createUUID());
 
 		var audiosource = document.createElement("source");
-		if(bcontent['url']) {
-			audiosource.setAttribute("src",bcontent['content']);
-		}
 		audiosource.setAttribute("type","audio/mpeg");
+		
+		if (bcontent['content']) {
+			var url = bcontent['content'];
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+			
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "audio/mpeg"});		
+				audiosource.src = _private.objectURLs[url] = URL.createObjectURL(new Blob([e.target.response],{type: "audio/mpeg"}));
+				audio.load();
+	        });
+			
+			audio.setAttribute('data-url', url);
+		}
 
 		audio.appendChild(audiosource);
 		block.appendChild(audio);
@@ -38,32 +51,20 @@ Bengine.extensibles.audio = new function Audio() {
 		return block;
 	};
 
-	this.afterDOMinsert = function(bid,url,data) {
+	this.afterDOMinsert = function(bid,url) {
 		/* audio & video divs have their src set in an extra child node */
-		var audiotag = document.getElementById(bid).childNodes[0];
-		
-		if (data) {
-			var aid = audiotag.getAttribute('data-aid');
-			_private.files[aid] = data;
-			
-			audiotag.childNodes[0].src = URL.createObjectURL(data);
-            audiotag.load();
-		} else if (url !== null) {
-			var xhr = new XMLHttpRequest();
-            xhr.open('GET',url);
-            xhr.responseType = 'arraybuffer';
-			xhr.onload = function(e) {
-				var aid = audiotag.getAttribute('data-aid');
-				var urlParts = url.split('/');
-				_private.files[aid] = new File([e.target.response], urlParts[urlParts.length-1], {type: "audio/mp3"});
-				
-				audiotag.childNodes[0].src = URL.createObjectURL(new Blob([e.target.response],{type: "audio/mp3"}));
+		if (url) {
+			var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + url;
+			var audiotag = document.getElementById(bid).childNodes[0];
+
+			thisBlock.p.getMediaFile(fullUrl,function(e) {
+				_private.files[url] = new File([e.target.response], url, {type: "audio/mpeg"});				
+				audiotag.childNodes[0].src = _private.objectURLs[url] = URL.createObjectURL(new Blob([e.target.response],{type: "audio/mpeg"}));
 				audiotag.load();
-            };
-            xhr.send();
-            
-			audiotag.setAttribute('data-url', url);
-		}
+	        });
+    		
+    		audiotag.setAttribute('data-url', url);
+    	}
 	};
 	
 	this.runBlock = null;
@@ -76,8 +77,7 @@ Bengine.extensibles.audio = new function Audio() {
 	};
 	
 	this.saveFile = function(bid) {
-    	var aid = document.getElementById(bid).children[0].getAttribute('data-aid');
-    	return _private.files[aid];
+    	return _private.files[document.getElementById(bid).children[0].getAttribute('data-url')];
 	};
 
 	this.showContent = function(block,bcontent) {
@@ -85,9 +85,11 @@ Bengine.extensibles.audio = new function Audio() {
 		audio.setAttribute("class","xAud-show");
 		audio.volume = 0.8;
 		audio.setAttribute("controls","controls");
+		
+		var fullUrl = thisBlock.d.getContentPath() + thisBlock.d.getPagePath() + bcontent['content'];
 
 		var audiosource = document.createElement("source");
-		audiosource.setAttribute("src",bcontent['content']);
+		audiosource.setAttribute("src",fullUrl);
 		audiosource.setAttribute("type","audio/mpeg");
 
 		audio.appendChild(audiosource);

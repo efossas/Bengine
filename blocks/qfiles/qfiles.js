@@ -111,12 +111,15 @@ Bengine.extensibles.files = new function Files() {
 			var tpath = path.trim();
 			// just save local paths, avoid empty lines
 			if (path.length > 0 && path.indexOf("http") < 0) {
-				// use needs to run block, before saveFile will work...
+				// user needs to run block, before saveFile will work...
 				if(_private.fileBlobs[path]) {
 					array.push(_private.fileBlobs[path]);
+				} else {
+					thisBlock.p.alerts.alert('The <b>' + path + '</b> file has not been retrieved. Run the file block to retrieve them if you want to save those files.');
 				}
 			}
 		}
+
 		return array;
 	};
 

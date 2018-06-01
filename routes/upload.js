@@ -10,7 +10,7 @@ exports.process = function(request,response) {
     /*
 	    query should contain:
 	    	query.fpath		- path to file assets
-	    	query.btype		- the service, like 'sage'
+	    	query.btype		- the service, like 'sage', if not exists, only upload the file
 	*/
 	request.pipe(request.busboy);
 
@@ -22,7 +22,8 @@ exports.process = function(request,response) {
 		});
 		
 		/* create page directory if not exists */
-		var reldir = '/content/' + decodeURIComponent(request.query.fpath).replace(/^\/(.+)?\/$/g,"$1") + "/assets/";
+		var astdir = "/assets/";
+		var reldir = '/content/' + decodeURIComponent(request.query.fpath).replace(/^\/(.+)?\/$/g,"$1") + astdir;
 		var absdir = './public' + reldir;
 		const initDir = path.isAbsolute(absdir) ? path.sep : '';
 		
@@ -44,7 +45,12 @@ exports.process = function(request,response) {
 		file.pipe(fstream);
 
 		fstream.on('close',function() {
-			// if service exists, run it
+			/* check that service was requested, otherwise, this is just an upload route */
+			if (!request.query.hasOwnProperty('btype')) {
+			    response.end('');
+				return;
+			}
+			
 			try {
 				const service = require('../blocks/' + request.query.btype + '/service.js');
 				
@@ -106,7 +112,7 @@ exports.process = function(request,response) {
                                     
                                     /* respond with file name */
                                     fstream.on('close',function() {
-                                        response.end("," + reldir + getFile);
+                                        response.end("," + astdir + getFile);
                                     });
                                     
                                     return;

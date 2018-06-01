@@ -57,7 +57,7 @@ function Bengine(options,extensions) {
 	this.variables = _protected.variables;
 	_protected.variables.qengine = {};
 	_protected.variables.qengine.randomseed = Math.floor(Math.random() * 4294967296);
-
+	
 	// initialize options
 	_protected.options = {};
 	if(typeof options !== 'object') var coptions = {}; else var coptions = Object.assign({},options);
@@ -77,6 +77,7 @@ function Bengine(options,extensions) {
 		quiz:0,
 		unknown:0
 	};
+	_private.contentPath = "/content/";
 	_private.engineID = '';
 	_private.pagePath = '';
 	_private.quizData = {
@@ -87,11 +88,16 @@ function Bengine(options,extensions) {
 		stepNext:null, // index in data of next step, null=unknown, -1=no more steps
 		submitData:{}, // stores form data submitted by student on quiz
 		store:[]
-	}
+	};
+	_private.extState = {
+		dependencies:{},
+		styles:{}
+	};
 	
 	// qengine blocks use these
-	_protected.getEngineID = function() { return _private.engineID; }
-	_protected.getPagePath = function() { return _private.pagePath; }
+	_protected.getEngineID = function() { return _private.engineID; };
+	_protected.getPagePath = function() { return _private.pagePath; };
+	_protected.getContentPath = function() { return _private.contentPath; };
 	
 	// initialize objects that will hold methods
 	_private.blockMethod = {};
@@ -172,7 +178,7 @@ function Bengine(options,extensions) {
 			block.innerHTML = "<p class='bengine_unknown_block'>unknown block</p>";
 			return block;
 		}
-		this.afterDOMinsert = function(bid,url,data) {return null;}
+		this.afterDOMinsert = function(bid,data) {return null;}
 		this.runBlock = null;
 		this.runData = function(data) {return null;}
 		this.saveContent = function(bid) {return {};}
@@ -406,7 +412,8 @@ function Bengine(options,extensions) {
 		_pub.parseEngineFile = function(text) {
 			_priv.reset();
 			var bsearch = true;
-			var lines = text.split("\n");
+			var lines = text.split(/(?<=\n)/);
+			console.log(lines);
 			for (line of lines) {
 				if (bsearch) {
 					bsearch = !_priv.parseOpen(line);
@@ -522,6 +529,14 @@ function Bengine(options,extensions) {
 		});
 		
 		return promise;
+	};
+	
+	_private.extAPI.getMediaFile = function(url,callback) {
+		var xhr = new XMLHttpRequest();
+        xhr.open('GET',url);
+        xhr.responseType = 'arraybuffer';
+		xhr.onload = callback;
+        xhr.send();
 	};
 	
 	_private.extAPI.getResourcePath = function(str) {
@@ -677,7 +692,7 @@ function Bengine(options,extensions) {
 			blocksdiv.appendChild(group);
 			
 			/* do any rendering the block needs */
-			_private.extensibles[blockData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null,null);
+			_private.extensibles[blockData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null);
 	
 			count += 2;
 			i++;
@@ -761,7 +776,7 @@ function Bengine(options,extensions) {
 		_private.pagePath = pagePath;
 		
 		if(pageData.length < 1 && pagePath.length > 0) {
-			var fpromise = _private.helper.retrieveResource("/content/" + pagePath + "/bengine.json");
+			var fpromise = _private.helper.retrieveResource(_private.contentPath + pagePath + "/bengine.json");
 			fpromise.then(function(result) {
 				dataObj = JSON.parse(result.data.file);
 				rpageData = [];
@@ -1028,7 +1043,7 @@ function Bengine(options,extensions) {
 		_private.pagePath = pagePath;
 		
 		if(pageData.length < 1 && pagePath.length > 0) {
-			var fpromise = _private.helper.retrieveResource("/content/" + pagePath + "/bengine.json");
+			var fpromise = _private.helper.retrieveResource(_private.contentPath + pagePath + "/bengine.json");
 			fpromise.then(function(result) {
 				dataObj = JSON.parse(result.data.file);
 				rpageData = [];
@@ -1173,7 +1188,7 @@ function Bengine(options,extensions) {
 			blocksdiv.appendChild(group);
 	
 			/* do any rendering the block needs */
-			_private.extensibles[pageData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null,null);
+			_private.extensibles[pageData[count]].afterDOMinsert('bengine-a-' + _private.engineID + '-' + i,null);
 	
 			count += 2;
 			i++;
@@ -1227,7 +1242,7 @@ function Bengine(options,extensions) {
 		_private.pagePath = pagePath;
 		
 		if(pageData.length < 1 && pagePath.length > 0) {
-			var fpromise = _private.helper.retrieveResource("/content/" + pagePath + "/bengine.json");
+			var fpromise = _private.helper.retrieveResource(_private.contentPath + pagePath + "/bengine.json");
 			fpromise.then(function(result) {
 				dataObj = JSON.parse(result.data.file);
 				rpageData = [];
@@ -1314,14 +1329,18 @@ function Bengine(options,extensions) {
 		/* get script data for each extensibles */
 		for(var prop in _private.extensibles)(function(prop) {
 			if(_private.extensibles.hasOwnProperty(prop)) {
-				var scriptArray = _private.extensibles[prop].fetchDependencies();
-				if(scriptArray !== null) {					
-					fetchScript([],scriptArray,0,'',0);
-					scriptArray.forEach(function(element) {
-						if(element.wait) {
-							waiting.push(element.wait);
-						}
-					});
+				// ensure we haven't loaded this dependency yet
+				if (!_private.extState.dependencies.hasOwnProperty(prop)) {
+					_private.extState.dependencies[prop] = true;
+					var scriptArray = _private.extensibles[prop].fetchDependencies();
+					if(scriptArray !== null) {					
+						fetchScript([],scriptArray,0,'',0);
+						scriptArray.forEach(function(element) {
+							if(element.wait) {
+								waiting.push(element.wait);
+							}
+						});
+					}
 				}
 			}
 		})(prop);
@@ -1333,10 +1352,14 @@ function Bengine(options,extensions) {
 	_private.blockMethod.blockStyle = function() {
 		for(var prop in _private.extensibles)(function(prop) {
 			if(_private.extensibles.hasOwnProperty(prop)) {
-				var style = document.createElement('style');
-				style.type = 'text/css';
-				style.innerHTML = _private.extensibles[prop].styleBlock();
-				document.getElementsByTagName('head')[0].appendChild(style);
+				// ensure we haven't loaded this dependency yet
+				if (!_private.extState.styles.hasOwnProperty(prop)) {
+					_private.extState.styles[prop] = true;
+					var style = document.createElement('style');
+					style.type = 'text/css';
+					style.innerHTML = _private.extensibles[prop].styleBlock();
+					document.getElementsByTagName('head')[0].appendChild(style);
+				}
 			}
 		})(prop);
 	};
@@ -1597,7 +1620,7 @@ function Bengine(options,extensions) {
 			
 		var blockbuttons = _private.blockMethod.blockButtons(bid);
 		_private.blockMethod.insertBlock(retblock,blockbuttons,bid,blockCount);
-		blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,null,null);
+		blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,null);
 	
 		/* make delete buttons visible */
 		var i = 0;
@@ -1694,6 +1717,54 @@ function Bengine(options,extensions) {
 	
 	/*** Section: Ajax Functions For Handling Data On The Back-End ***/
 	
+	_private.datahandler.uploadEngineFile = function() {
+		_private.datahandler.requestFile(".zip,.txt",function(file) {
+			if (file.type === "application/zip") {
+				var zip = new Bengine.libs.zip();
+				zip.loadAsync(file).then(function(unzip) {
+					var txtFile;
+				    var keys = Object.keys(unzip.files);
+				    var filePromises = [];
+				    for (key of keys) {
+					    if (!unzip.files[key].dir) {
+						    var filename = key.split('/').pop();
+						    /* don't process hidden files, mainly deals with annoying OS directory custom attributes files */
+						    if (filename[0] !== '.') {
+							    var extension = key.slice(key.length-4,key.length);
+							    if (extension !== ".njn") {
+									filePromises.push(_private.datahandler.sendFile(new File([unzip.files[key]._data.compressedContent], unzip.files[key].name)));
+							    } else {
+								    txtFile = (new TextDecoder("utf-8")).decode(unzip.files[key]._data.compressedContent);
+							    }
+						    }
+						}
+				    }
+
+				    if (txtFile) {
+					    Promise.all(filePromises).then(function(values) {
+						    for (value of values) {
+							    if (value[0] !== 200) {
+								    _private.alerts.alert("There was an error uploading: " + value[1]);
+							    }
+						    }
+						    var blocks = _private.helper.parseEngineFile(txtFile);
+							var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
+							_private.loadBlocksEditReady(pageData);
+					    });
+				    }
+				});
+			} else if (file.type === "text/plain") {
+				var reader = new FileReader();
+				reader.onload = function(e) {
+				    var blocks = _private.helper.parseEngineFile(reader.result);
+				    var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
+				    _private.loadBlocksEditReady(pageData);
+				}
+				reader.readAsText(file);
+			}
+		});
+	};
+	
 	if(_protected.options.mode === 'bengine') {
 		// used for creating a Bengine File of the blocks
 		_private.datahandler.createFile = function() {
@@ -1744,10 +1815,9 @@ function Bengine(options,extensions) {
 			// create .zip file or just .njn
 			if (BengineAssets.length > 0) {
 				var zip = new Bengine.libs.zip();
-				zip.file(_private.pagePath.replace(/\//g,'') + ".txt", BengineFile);
-				var folder = zip.folder('assets');
+				zip.file(_private.pagePath.replace(/\//g,'') + ".njn", BengineFile);
 				for (asset of BengineAssets) {
-					folder.file(asset.name, asset);
+					zip.file(asset.name, asset);
 				}
 				zip.generateAsync({type:"blob"}).then(function (blob) {
 				    Bengine.libs.file.saveAs(blob,_private.pagePath.replace(/\//g,'') + '.zip');
@@ -1760,43 +1830,6 @@ function Bengine(options,extensions) {
 				qd.document.write('</body></html>');
 				qd.document.close();
 			}
-		};
-		
-		_private.datahandler.uploadEngineFile = function() {
-			_private.datahandler.requestFile(".zip,.txt",function(file) {
-				if (file.type === "application/zip") {
-					var zip = new Bengine.libs.zip();
-					zip.loadAsync(file).then(function(unzip) {
-						var txtFile;
-						var assets = [];
-					    var keys = Object.keys(unzip.files);
-					    for (key of keys) {
-						    if (key.substr(0,7) === "assets/" && key.length > 7) {
-							    var asset = {};
-							    asset[key.substr(7,key.length-1)] = unzip.files[key];
-							    assets.push(asset);
-						    } else if (key.substr(key.length-4,key.length-1) === ".txt") {
-							    txtFile = unzip.files[key];
-						    }
-					    }
-					    if (txtFile) {
-						    txtFile.async("string").then(function(data) {
-								var blocks = _private.helper.parseEngineFile(data);
-								var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
-								_private.loadBlocksEditReady(pageData);
-						    });
-					    }
-					});
-				} else if (file.type === "text/plain") {
-					var reader = new FileReader();
-					reader.onload = function(e) {
-					    var blocks = _private.helper.parseEngineFile(reader.result);
-					    var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
-					    _private.loadBlocksEditReady(pageData);
-					}
-					reader.readAsText(file);
-				}
-			});
 		};
 		
 	} else if(_protected.options.mode === 'qengine') {
@@ -1866,7 +1899,7 @@ function Bengine(options,extensions) {
 			// create .zip file or just .njn
 			if (QengineAssets.length > 0) {
 				var zip = new Bengine.libs.zip();
-				zip.file(_private.pagePath.replace(/\//g,'') + ".txt", QengineFile);
+				zip.file(_private.pagePath.replace(/\//g,'') + ".njn", QengineFile);
 				var folder = zip.folder('assets');
 				for (asset of QengineAssets) {
 					try {
@@ -1886,43 +1919,6 @@ function Bengine(options,extensions) {
 				qd.document.write('</body></html>');
 				qd.document.close();
 			}
-		};
-		
-		_private.datahandler.uploadEngineFile = function() {
-			_private.datahandler.requestFile(".zip,.txt",function(file) {
-				if (file.type === "application/zip") {
-					var zip = new Bengine.libs.zip();
-					zip.loadAsync(file).then(function(unzip) {
-						var txtFile;
-						var assets = [];
-					    var keys = Object.keys(unzip.files);
-					    for (key of keys) {
-						    if (key.substr(0,7) === "assets/" && key.length > 7) {
-							    var asset = {};
-							    asset[key.substr(7,key.length-1)] = unzip.files[key];
-							    assets.push(asset);
-						    } else if (key.substr(key.length-4,key.length-1) === ".txt") {
-							    txtFile = unzip.files[key];
-						    }
-					    }
-					    if (txtFile) {
-						    txtFile.async("string").then(function(data) {
-								var blocks = _private.helper.parseEngineFile(data);
-								var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
-								_private.loadBlocksEditReady(pageData);
-						    });
-					    }
-					});
-				} else if (file.type === "text/plain") {
-					var reader = new FileReader();
-					reader.onload = function(e) {
-					    var blocks = _private.helper.parseEngineFile(reader.result);
-					    var pageData = _private.helper.convertNjnFormatToPageDataArray(blocks);
-					    _private.loadBlocksEditReady(pageData);
-					}
-					reader.readAsText(file);
-				}
-			});
 		};
 		
 	} else {
@@ -2152,7 +2148,7 @@ function Bengine(options,extensions) {
 		});
 
 		promise.then(function(result) {
-			blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,result.data.spot,null);
+			blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,result.data.spot);
 
 			/* save blocks to temp table, indicated by false */
 			_private.display.updateSaveStatus("Not Saved");
@@ -2202,6 +2198,29 @@ function Bengine(options,extensions) {
 			/* resets selection to nothing, in case user decides to upload the same file, onchange will still fire */
 			this.value = null;
 		};
+	};
+	
+	/* sends file to be uploaded without 'btype' which means no service is run */
+	_private.datahandler.sendFile = function(file) {
+		var promise = new Promise(function(resolve,reject) {
+			var formData = new FormData();
+			formData.append('media',file,file.name);
+	
+			var url = _private.helper.createURL("/upload?fpath=" + encodeURIComponent(_private.pagePath));
+	
+			var xmlhttp = new XMLHttpRequest();
+			xmlhttp.open('POST',url,true);
+			
+			xmlhttp.onreadystatechange = function() {
+				if (xmlhttp.readyState === XMLHttpRequest.DONE) {
+					resolve([xmlhttp.status,file.name]);
+				}
+			};
+			
+			xmlhttp.send(formData);	
+		});
+		
+		return promise;
 	};
 	
 	_private.datahandler.uploadMedia = function(bid,blockObj) {
@@ -2257,7 +2276,8 @@ function Bengine(options,extensions) {
 			function uploadAll(bid,blockObj,file) {
 				_private.blockMethod.createBlock(bid - 1,blockObj);
 				
-				blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,null,file);
+				//// TODO: local mode?
+				// blockObj.afterDOMinsert('bengine-a-' + _private.engineID + '-' + bid,file);
 				
 				_private.datahandler.uploadProcess(bid,blockObj,file);
 				_private.display.updateSaveStatus("Not Saved");
@@ -2322,7 +2342,7 @@ Bengine.setScriptPath = function(path) {
 	}
 };
 
-Bengine.loadBlocks = function(blocks) {
+Bengine.loadBlocks = function(blocks,updateId) {
 	// validate
 	if(typeof blocks === "undefined") {
 		return -1;
@@ -2332,27 +2352,60 @@ Bengine.loadBlocks = function(blocks) {
 		Bengine.setScriptPath();
 	}
 	
-	var notLoadedBlocks = blocks;
+	function Status(updateId,blocks) {
+		if (document.getElementById(updateId) === null) {
+			this.display = {};
+		} else {
+			var display = document.createElement('div');
+			display.id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+				let r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+				return v.toString(16);
+			});
+			display.style = "background-color:white;padding:6px;";
+			display.innerHTML = "Fetching blocks...";
+			document.getElementById(updateId).innerHTML = '';
+			document.getElementById(updateId).appendChild(display);
+			this.display = display;
+		}
+		 
+		this.blocks = blocks;
+		this.count = 0;
+		this.total = blocks.length;
+		this.failed = [];
+		
+		this.update = function(block) {
+			var index = this.blocks.indexOf(block);
+			if (index !== -1) {
+				this.blocks.splice(index, 1);
+				this.count++;
+				this.display.innerHTML = "Fetched " + this.count + " / " + this.total;
+			}
+		};
+		
+		this.failure = function(block) {
+			console.log("failed to load: " + block);
+			this.failed.push(block);
+			var index = this.blocks.indexOf(block);
+			if (index !== -1) {
+				this.blocks.splice(index, 1);
+			}
+		}
+	};
+	
+	var status = new Status(updateId,blocks);
 	
 	// pick up on 404 script load errors
-	var failedBlockLoads = [];
 	function failedBlockFunc(e) {
 		if(e.target.tagName === "SCRIPT") {
 			var blockName = e.target.src.split("/").pop().split(".")[0];
 			if(typeof blockName !== "undefined") {
-				console.log("failed to load: " + blockName);
-				failedBlockLoads.push(blockName);
-				var index = notLoadedBlocks.indexOf(blockName);
-				if (index !== -1) notLoadedBlocks.splice(index, 1);
+				status.failure(blockName);
 			}
 		}
 		if(e.target.tagName === "LINK") {
 			var blockName = e.target.href.split("/").pop().split(".")[0];
 			if(typeof blockName !== "undefined") {
-				console.log("failed to link: " + blockName);
-				failedBlockLoads.push(blockName);
-				var index = notLoadedBlocks.indexOf(blockName);
-				if (index !== -1) notLoadedBlocks.splice(index, 1);
+				status.failure(blockName);
 			}
 		}
 	};
@@ -2366,21 +2419,35 @@ Bengine.loadBlocks = function(blocks) {
 	blocks.forEach(function(block) {
 		if(block.indexOf(".css") > -1) {
 			var stylesheet = document.createElement('link');
+			document.getElementsByTagName('head')[0].appendChild(stylesheet);
+			
 			stylesheet.onload = function(e) {
-				var index = notLoadedBlocks.indexOf(block);
-				if (index !== -1) notLoadedBlocks.splice(index, 1);
+				status.update(block);
 			};
+			
 			stylesheet.rel = "stylesheet";
 			stylesheet.defer = true;
 			stylesheet.href = block;
-			document.getElementsByTagName('head')[0].appendChild(stylesheet);
 		} else {
 			var scripts = document.createElement('script');
-			scripts.onload = function(e) {
-				var index = notLoadedBlocks.indexOf(block);
-				if (index !== -1) notLoadedBlocks.splice(index, 1);
-			};
+			document.getElementsByTagName('head')[0].appendChild(scripts);
+
 			scripts.async = false;
+			scripts.type = 'text/javascript';
+			scripts.onload = function(e) {
+				status.update(block);
+				
+			    var sc = e.path[0].src.split('/');
+			    var dep = sc[sc.length-1].split('.')[0];
+			    switch(dep) {
+				    case 'jszip':
+				        Bengine.libs.zip = JSZip; break;
+				    case 'FileSaver':
+				        Bengine.libs.file = { saveAs:window.saveAs }; break;
+				    default:
+			    }
+			};
+			
 			if(block.indexOf("http") > -1 && block.indexOf("//") > -1) {
 				if(block.indexOf("RELATIVE") > -1) {
 					var url = block.split("/").slice(3).join("/");
@@ -2395,19 +2462,6 @@ Bengine.loadBlocks = function(blocks) {
 					scripts.src = Bengine.benginePath + '/blocks/' + block + ".js";
 				}
 			}
-			scripts.type = 'text/javascript';
-			scripts.onload = function(e) {
-			    var sc = e.path[0].src.split('/');
-			    var dep = sc[sc.length-1].split('.')[0];
-			    switch(dep) {
-				    case 'jszip':
-				        Bengine.libs.zip = JSZip; break;
-				    case 'FileSaver':
-				        Bengine.libs.file = { saveAs:window.saveAs }; break;
-				    default:
-			    }
-			};
-			document.getElementsByTagName('head')[0].appendChild(scripts);
 		}
 	});
 	
@@ -2418,14 +2472,15 @@ Bengine.loadBlocks = function(blocks) {
 	async function waitForAllBlocks(resolve,reject) {		
 		var tries = 0;
 		var limit = 100;
-		while(notLoadedBlocks.length > 0 && tries < limit) {
+		
+		while((status.count + status.failed.length) < status.total && tries < limit) {
 			await sleep(50);
 			tries++;
 		}
 		
 		window.removeEventListener('error',failedBlockFunc);
-		
-		resolve(failedBlockLoads);
+
+		resolve(status.failed);
 	};
 	
 	return new Promise(waitForAllBlocks);
